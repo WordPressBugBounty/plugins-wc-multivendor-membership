@@ -3,11 +3,11 @@ Contributors: wclovers
 Tags: woocommerce membership, subscription, members, multivendor marketplace, multi vendor 
 Donate link: https://www.paypal.me/wclovers/25usd
 Requires at least: 4.4
-Tested up to: 6.4
+Tested up to: 6.7
 WC requires at least: 3.0
-WC tested up to: 9.0.0
+WC tested up to: 9.5.0
 Requires PHP: 5.6
-Stable tag: 2.11.5
+Stable tag: 2.11.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,12 @@ NONE.
 17. Membership Details - Cancel & Upgrade
 
 == Changelog ==
+
+= 2.11.6 =
+*Updated - 12/01/2025*
+
+* Enhance - WordPress 6.7+ compatibility check added
+* Enhance - WooCommerce 9.5+ compatibility check added
 
 = 2.11.5 =
 *Updated - 26/06/2024*
@@ -837,7 +843,6 @@ NONE.
 
 == Upgrade Notice ==
 
-= 2.11.5 =
-* Enhance - WooCommerce 9.0+ compatibility check added
-* Enhance - Added support for new create Checkout Session API parametes
-* Enhance - Update support for Stripe API v2023-10-16
+= 2.11.6 =
+* Enhance - WordPress 6.7+ compatibility check added
+* Enhance - WooCommerce 9.5+ compatibility check added
