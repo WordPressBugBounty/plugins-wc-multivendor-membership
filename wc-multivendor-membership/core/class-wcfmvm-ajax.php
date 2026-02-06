@@ -938,7 +938,7 @@ class WCFMvm_Ajax {
 		
 		$paypal_email 	= $membership_payment_settings['paypal_email'] ? $membership_payment_settings['paypal_email'] : '';
 		$paypal_sandbox = isset($membership_payment_settings['paypal_sandbox']) ? 'yes' : 'no';
-		$paypal_url 	= $paypal_sandbox ? "https://www.sandbox.paypal.com/cgi-bin/webscr" : "https://www.paypal.com/cgi-bin/webscr";
+		$paypal_url 	= 'yes' === $paypal_sandbox ? "https://www.sandbox.paypal.com/cgi-bin/webscr" : "https://www.paypal.com/cgi-bin/webscr";
 
 		if ( isset($wcfm_membership_payment_form_data['custom']) && !empty($wcfm_membership_payment_form_data['custom']) ) {
 			$member_id = absint( $wcfm_membership_payment_form_data['custom'] );
@@ -972,7 +972,7 @@ class WCFMvm_Ajax {
 					'business'		=> esc_attr($paypal_email),
 					'currency_code'	=> esc_attr($payment_currency),
 					'item_number'	=> esc_attr($membership_id),
-					'item_name'		=> esc_attr($title . ' - ' . $description),
+					'item_name'		=> substr(esc_attr($title . ' - ' . $description), 0, 20), // maxlength 20 characters
 					'no_shipping'	=> 1,
 					'notify_url'	=> esc_url(add_query_arg( 'wcfmvm_process_ipn', 'paypal_ipn', get_wcfm_membership_url() )),
 					'return'		=> esc_url(apply_filters( 'wcfm_registration_thankyou_url', add_query_arg( 'vmstep', 'thankyou', get_wcfm_membership_url() ) )),

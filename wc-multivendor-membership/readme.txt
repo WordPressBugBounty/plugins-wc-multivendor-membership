@@ -5,9 +5,9 @@ Donate link: https://www.paypal.me/wclovers/25usd
 Requires at least: 4.4
 Tested up to: 6.8
 WC requires at least: 3.0
-WC tested up to: 9.9.0
+WC tested up to: 10.3
 Requires PHP: 5.6
-Stable tag: 2.11.7
+Stable tag: 2.11.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,13 @@ NONE.
 17. Membership Details - Cancel & Upgrade
 
 == Changelog ==
+
+= 2.11.8 =
+*Updated - 16/11/2025*
+
+* Enhance - WooCommerce 10.3+ compatibility check added
+* Fixed   - Corrected 404 Bad Link error for PayPal membership subscription payment links in Sandbox mode.
+* Fixed   - Added translation support for the Membership welcome email based on the membership page language (WPML).
 
 = 2.11.7 =
 *Updated - 09/07/2025*
@@ -849,6 +856,7 @@ NONE.
 
 == Upgrade Notice ==
 
-= 2.11.7 =
-* Enhance - WordPress 6.8+ compatibility check added
-* Enhance - WooCommerce 9.9+ compatibility check added
+= 2.11.8 =
+* Enhance - WooCommerce 10.3+ compatibility check added
+* Fixed   - Corrected 404 Bad Link error for PayPal membership subscription payment links in Sandbox mode.
+* Fixed   - Added translation support for the Membership welcome email based on the membership page language (WPML).

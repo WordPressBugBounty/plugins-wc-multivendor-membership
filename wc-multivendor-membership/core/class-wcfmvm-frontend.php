@@ -79,7 +79,9 @@ class WCFMvm_Frontend {
 		add_action('wp_enqueue_scripts', array(&$this, 'wcfmvm_scripts'));
 		// Membership enqueue styles
 		add_action('wp_enqueue_scripts', array(&$this, 'wcfmvm_styles'));
-		
+
+		// Membership email translation support based on membership page language (wpml)
+		add_action( 'wcfm_membership_registration', array( &$this, 'wcfmvm_set_wpml_language' ), 10, 2 );
 	}
 	
 	/**
@@ -1353,5 +1355,11 @@ class WCFMvm_Frontend {
 			</div>
 		<?php
 		return true;
+	}
+
+	function wcfmvm_set_wpml_language($member_id, $registration_form_data) {
+		if ( defined( 'ICL_SITEPRESS_VERSION' ) && ! ICL_PLUGIN_INACTIVE && class_exists( 'SitePress' ) && !get_user_meta( $member_id, 'icl_admin_language', true )) {
+			update_user_meta( $member_id, 'icl_admin_language', apply_filters( 'wpml_current_language', null ) );
+		}
 	}
 }
