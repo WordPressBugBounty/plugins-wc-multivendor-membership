@@ -31,6 +31,12 @@ class WCFMvm_Memberships_Payment_Controller {
 
 		if (isset($wcfm_membership_payment_form_data['member_id']) && !empty($wcfm_membership_payment_form_data['member_id'])) {
 			$member_id 			= absint($wcfm_membership_payment_form_data['member_id']);
+			
+			if ($member_id && !$this->is_valid_member_id( $member_id )) {
+				echo '{"status": false, "message": "' . esc_html__( 'Not a valid member', 'wc-multivendor-membership' ) . '"}';
+				die;
+			}
+
 			$wcfm_membership	= get_user_meta($member_id, 'temp_wcfm_membership', true);
 			$paymode 			= wc_clean($_POST['paymode']);
 
@@ -76,5 +82,15 @@ class WCFMvm_Memberships_Payment_Controller {
 		}
 
 		die;
+	}
+
+	protected function is_valid_member_id( $member_id ) {
+		$is_valid_member = false;
+
+		if ((get_current_user_id() == $member_id) && wcfm_is_allowed_membership()) {
+			$is_valid_member = true;
+		}
+
+		return $is_valid_member;
 	}
 }

@@ -3,11 +3,11 @@ Contributors: wclovers
 Tags: woocommerce membership, subscription, members, multivendor marketplace, multi vendor 
 Donate link: https://www.paypal.me/wclovers/25usd
 Requires at least: 4.4
-Tested up to: 6.8
+Tested up to: 6.9
 WC requires at least: 3.0
-WC tested up to: 10.3
+WC tested up to: 10.5
 Requires PHP: 5.6
-Stable tag: 2.11.8
+Stable tag: 2.11.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -155,8 +155,15 @@ NONE.
 
 == Changelog ==
 
+= 2.11.9 =
+*Updated - 07/02/2026*
+
+* Fixed   - Insecure Direct Object Reference to Update Membership Payment vulnerability reported by Jing Xuan Sun, Credit goes to Jing Xuan Sun for identifying this issue.
+* Enhance - WordPrss 6.9+ compatibility check added
+* Enhance - WooCommerce 10.5+ compatibility check added
+
 = 2.11.8 =
-*Updated - 16/11/2025*
+*Updated - 12/11/2025*
 
 * Enhance - WooCommerce 10.3+ compatibility check added
 * Fixed   - Corrected 404 Bad Link error for PayPal membership subscription payment links in Sandbox mode.
@@ -856,7 +863,8 @@ NONE.
 
 == Upgrade Notice ==
 
-= 2.11.8 =
-* Enhance - WooCommerce 10.3+ compatibility check added
-* Fixed   - Corrected 404 Bad Link error for PayPal membership subscription payment links in Sandbox mode.
-* Fixed   - Added translation support for the Membership welcome email based on the membership page language (WPML).
+= 2.11.9 =
+
+* Fixed   - Insecure Direct Object Reference to Update Membership Payment vulnerability reported by Jing Xuan Sun, Credit goes to Jing Xuan Sun for identifying this issue.
+* Enhance - WordPrss 6.9+ compatibility check added
+* Enhance - WooCommerce 10.5+ compatibility check added
