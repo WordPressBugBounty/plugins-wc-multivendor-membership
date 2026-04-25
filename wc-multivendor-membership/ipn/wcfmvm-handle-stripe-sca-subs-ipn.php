@@ -32,7 +32,7 @@ class wcfm_stripe_subs_ipn_handler {
 			include( $WCFMvm->plugin_path . 'includes/libs/stripe-gateway/init.php');
 		}
 		
-		$ref_id = filter_input( INPUT_GET, 'ref_id', FILTER_SANITIZE_STRING );
+		$ref_id = filter_input( INPUT_GET, 'ref_id', FILTER_DEFAULT );
 
 		if ( empty( $ref_id ) ) {
 			//no ref id provided, cannot proceed

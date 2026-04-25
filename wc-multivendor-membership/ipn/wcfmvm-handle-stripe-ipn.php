@@ -99,7 +99,7 @@ class wcfm_stripe_ipn_handler {
 				"description" => $button_title,
 				"receipt_email" => $stripe_email,
 		));
-		} catch(\Stripe\Error\Card $e) {
+		} catch(\Stripe\Exception\CardException $e) {
 				// The card has been declined
 				wcfmvm_create_log("Stripe Charge Error! The card has been declined. ".$e->getMessage());
 				$body = $e->getJsonBody();

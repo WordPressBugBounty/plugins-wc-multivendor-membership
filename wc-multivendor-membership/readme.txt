@@ -5,9 +5,9 @@ Donate link: https://www.paypal.me/wclovers/25usd
 Requires at least: 4.4
 Tested up to: 6.9
 WC requires at least: 3.0
-WC tested up to: 10.5
+WC tested up to: 10.7
 Requires PHP: 5.6
-Stable tag: 2.11.9
+Stable tag: 2.11.10
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,7 +131,9 @@ The manual installation method involves downloading our eCommerce plugin and upl
 
 == FAQ ==
 
-NONE.
+= Where do I report security bugs found in this plugin? =
+
+Please report security bugs found in the source code of the WCFM Membership plugin through the [Patchstack Vulnerability Disclosure  Program](https://patchstack.com/database/vdp/9e5fbb38-6a01-4746-b38d-03cb0f0a652c). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
 
 == Screenshots ==
 
@@ -154,6 +156,11 @@ NONE.
 17. Membership Details - Cancel & Upgrade
 
 == Changelog ==
+
+= 2.11.10 =
+*Updated - 25/04/2026*
+
+* Enhance - PHP compatibility expanded: now supports versions 7.2–8.4
 
 = 2.11.9 =
 *Updated - 07/02/2026*
@@ -863,8 +870,6 @@ NONE.
 
 == Upgrade Notice ==
 
-= 2.11.9 =
+= 2.11.10 =
 
-* Fixed   - Insecure Direct Object Reference to Update Membership Payment vulnerability reported by Jing Xuan Sun, Credit goes to Jing Xuan Sun for identifying this issue.
-* Enhance - WordPrss 6.9+ compatibility check added
-* Enhance - WooCommerce 10.5+ compatibility check added
+* Enhance - PHP compatibility expanded: now supports versions 7.2–8.4

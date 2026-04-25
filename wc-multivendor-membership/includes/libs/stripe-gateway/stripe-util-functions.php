@@ -15,7 +15,7 @@ class WCFMvmStripeUtilFunctions
             \Stripe\Stripe::setApiKey($api_key);
 
             $plan = \Stripe\Plan::retrieve($plan_id);
-        } catch (\Stripe\Error\Authentication $e) {
+        } catch (\Stripe\Exception\AuthenticationException $e) {
             // Invalid secret key
             $stripe_err = $e->getMessage();
         } catch (Exception $e) {
