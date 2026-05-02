@@ -7,7 +7,7 @@ Tested up to: 6.9
 WC requires at least: 3.0
 WC tested up to: 10.7
 Requires PHP: 5.6
-Stable tag: 2.11.10
+Stable tag: 2.11.11
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -156,6 +156,12 @@ Please report security bugs found in the source code of the WCFM Membership plug
 17. Membership Details - Cancel & Upgrade
 
 == Changelog ==
+
+= 2.11.11 =
+*Updated - 02/05/2026*
+
+* Fixed   - Broken Access Control vulnerability in PayPal IPN payment processing.
+* Fixed   - Insecure Direct Object Reference (IDOR) to Limited Privilege Escalation via User Role Overwrite in membership AJAX actions.
 
 = 2.11.10 =
 *Updated - 25/04/2026*
@@ -870,6 +876,8 @@ Please report security bugs found in the source code of the WCFM Membership plug
 
 == Upgrade Notice ==
 
-= 2.11.10 =
 
-* Enhance - PHP compatibility expanded: now supports versions 7.2–8.4
+= 2.11.11 =
+
+* Fixed   - Broken Access Control vulnerability in PayPal IPN payment processing.
+* Fixed   - Insecure Direct Object Reference (IDOR) to Limited Privilege Escalation via User Role Overwrite in membership AJAX actions.

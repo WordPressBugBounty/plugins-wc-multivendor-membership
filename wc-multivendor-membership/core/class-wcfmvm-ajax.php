@@ -10,7 +10,9 @@
  */
  
 class WCFMvm_Ajax {
-	
+	/**
+	 * @var string $controllers_path
+	 */
 	public $controllers_path;
 
 	public function __construct() {
@@ -545,6 +547,15 @@ class WCFMvm_Ajax {
 		
 		if( isset( $_POST['memberid'] ) && isset($_POST['membershipid']) ) {
 			$member_id          = absint( $_POST['memberid'] );
+			$user_id = apply_filters('wcfm_current_vendor_id', get_current_user_id());
+			if ( function_exists( 'wcfm_user_can_perform_request' ) && !wcfm_user_can_perform_request( $member_id, 'wcfm_membership' ) ) {
+				echo '{"status": false, "message": "' . esc_html( __( 'You do not have permission to do this.', 'wc-multivendor-membership' ) ) . '"}';
+				die;
+			} elseif ( !function_exists( 'wcfm_user_can_perform_request' ) && !current_user_can( 'manage_woocommerce' ) && ( $user_id != $member_id ) ) {
+				echo '{"status": false, "message": "' . esc_html( __( 'You do not have permission to do this.', 'wc-multivendor-membership' ) ) . '"}';
+				die;
+			}
+			
 			$wcfm_membership_id = absint( $_POST['membershipid'] );
 			$paymode            = get_user_meta( $member_id, 'wcfm_membership_paymode', true );
 			
@@ -576,6 +587,15 @@ class WCFMvm_Ajax {
 		
 		if( isset( $_POST['memberid'] ) && isset($_POST['membershipid']) ) {
 			$member_id = absint( $_POST['memberid'] );
+			$user_id = apply_filters('wcfm_current_vendor_id', get_current_user_id());
+            if ( function_exists( 'wcfm_user_can_perform_request' ) && !wcfm_user_can_perform_request( $member_id, 'wcfm_membership' ) ) {
+				echo '{"status": false, "message": "' . esc_html( __( 'You do not have permission to do this.', 'wc-multivendor-membership' ) ) . '"}';
+				die;
+			} elseif ( !function_exists( 'wcfm_user_can_perform_request' ) && !current_user_can( 'manage_woocommerce' ) && ( $user_id != $member_id ) ) {
+				echo '{"status": false, "message": "' . esc_html( __( 'You do not have permission to do this.', 'wc-multivendor-membership' ) ) . '"}';
+				die;
+			}
+			
 			$wcfm_membership_id = absint( $_POST['membershipid'] );
 			$member_user = new WP_User( $member_id );
 			$shop_name = get_user_meta( $member_id, 'store_name', true );

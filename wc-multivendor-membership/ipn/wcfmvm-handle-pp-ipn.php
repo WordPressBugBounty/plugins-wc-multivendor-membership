@@ -2,12 +2,15 @@
 
 class wcfmvm_paypal_ipn_handler {
 
-	var $last_error;                 // holds the last error encountered
-	var $ipn_log = false;            // bool: log IPN results to text file?
-	var $ipn_response;               // holds the IPN response from paypal
-	var $ipn_data = array();         // array contains the POST values for IPN
-	var $fields = array();           // array holds the fields to submit to paypal
-	var $sandbox_mode = false;
+	public $last_error;                 // holds the last error encountered
+	public $ipn_log = false;            // bool: log IPN results to text file?
+	public $ipn_response;               // holds the IPN response from paypal
+	public $ipn_data = array();         // array contains the POST values for IPN
+	public $fields = array();           // array holds the fields to submit to paypal
+	public $sandbox_mode = false;
+	public $paypal_email = '';
+	public $paypal_url = '';
+	public $post_string = '';
 
 	function __construct() {
 		$this->paypal_url = 'https://www.paypal.com/cgi-bin/webscr';
@@ -17,7 +20,7 @@ class wcfmvm_paypal_ipn_handler {
 		$wcfm_membership_options = get_option( 'wcfm_membership_options', array() );
  		$membership_payment_settings = array();
 		if( isset( $wcfm_membership_options['membership_payment_settings'] ) ) $membership_payment_settings = $wcfm_membership_options['membership_payment_settings'];
-		$paypal_email = ( $membership_payment_settings['paypal_email'] ) ? $membership_payment_settings['paypal_email'] : '';
+		$this->paypal_email = ( isset($membership_payment_settings['paypal_email']) && $membership_payment_settings['paypal_email'] ) ? $membership_payment_settings['paypal_email'] : '';
 		$this->sandbox_mode = isset( $membership_payment_settings['paypal_sandbox'] ) ? true : false;
 	}
 
@@ -30,8 +33,32 @@ class wcfmvm_paypal_ipn_handler {
 		// Read the IPN and validate
 		$gross_total = $this->ipn_data['mc_gross'];
 		$transaction_type = $this->ipn_data['txn_type'];
-		$txn_id = $this->ipn_data['txn_id'];        
-		$payment_status = $this->ipn_data['payment_status'];
+		$txn_id = isset($this->ipn_data['txn_id']) ? $this->ipn_data['txn_id'] : '';        
+		$payment_status = isset($this->ipn_data['payment_status']) ? $this->ipn_data['payment_status'] : '';
+		
+		// Prevent Replay Attacks
+		if ( ! empty( $txn_id ) ) {
+			$txn_processed = get_option( 'wcfmvm_paypal_txn_' . $txn_id );
+			if ( $txn_processed ) {
+				wcfmvm_create_log('Transaction ' . $txn_id . ' already processed. Aborting to prevent replay.');
+				return false;
+			}
+		}
+			
+		// Check receiver email
+		$receiver_email = isset($this->ipn_data['receiver_email']) ? strtolower(trim($this->ipn_data['receiver_email'])) : '';
+		$business_email = isset($this->ipn_data['business']) ? strtolower(trim($this->ipn_data['business'])) : '';
+		$configured_email = strtolower(trim($this->paypal_email));
+		
+		if ( empty( $configured_email ) ) {
+			wcfmvm_create_log('PayPal Email is not configured. Aborting the process.');
+			return false;
+		}
+		
+		if ( $receiver_email != $configured_email && $business_email != $configured_email ) {
+			wcfmvm_create_log('PayPal Receiver Email mismatch. Aborting the process.');
+			return false;
+		}
 			
 		//Check payment status
 		if (!empty($payment_status)) {
@@ -75,6 +102,33 @@ class wcfmvm_paypal_ipn_handler {
 			wcfmvm_create_log('Subscription signup IPN received... (handled by the subscription IPN handler)');
 
 			$wcfm_membership = get_user_meta( $member_id, 'temp_wcfm_membership', true );
+			
+			// Subscription Price and Currency Checks
+			$membership_id = absint($wcfm_membership);
+			if ( $membership_id ) {
+				$subscription      = (array) get_post_meta( $membership_id, 'subscription', true );
+				$subscription_type = isset( $subscription['subscription_type'] ) ? $subscription['subscription_type'] : 'one_time';
+				
+				if ( $subscription_type != 'one_time' ) {
+					$subscription_amt = isset( $subscription['subscription_amt'] ) ? floatval($subscription['subscription_amt']) : '1';
+					$payment_currency = strtoupper(get_woocommerce_currency());
+					$payment_currency = apply_filters( 'wcfm_membership_payment_currency', $payment_currency );
+					
+					$mc_amount3 = isset( $this->ipn_data['mc_amount3'] ) ? floatval( $this->ipn_data['mc_amount3'] ) : 0;
+					$mc_currency = isset( $this->ipn_data['mc_currency'] ) ? strtoupper( $this->ipn_data['mc_currency'] ) : '';
+					
+					if ( $subscription_amt != $mc_amount3 ) {
+						wcfmvm_create_log('Subscription fee AMOUNT mismatch. Expected: ' . $subscription_amt . ' Received: ' . $mc_amount3 . ' Aborting.');
+						return false;
+					}
+					
+					if ( $payment_currency != $mc_currency ) {
+						wcfmvm_create_log('Subscription fee CURRENCY mismatch. Expected: ' . $payment_currency . ' Received: ' . $mc_currency . ' Aborting.');
+						return false;
+					}
+				}
+			}
+
 			if( $wcfm_membership ) {
 				update_user_meta( $member_id, 'wcfm_membership_paymode', 'paypal' );
 				update_user_meta( $member_id, 'wcfm_paypal_subscription_id', $this->ipn_data['subscr_id'] );
@@ -95,6 +149,7 @@ class wcfmvm_paypal_ipn_handler {
 			return true;
 		} else if (($transaction_type == "subscr_cancel") || ($transaction_type == "subscr_eot") || ($transaction_type == "subscr_failed")) {
 			// Code to handle the IPN for subscription cancellation
+			$wcfm_membership_id = get_user_meta( $member_id, 'wcfm_membership', true );
 			wcfm_log('Subscription cancellation PayPal IPN received...');
 			wcfm_log( "Membership Expiry by PayPal :: " . $member_id . " <=> " . $wcfm_membership_id . " <=> " . $transaction_type );
 			$WCFMvm->wcfmvm_vendor_membership_cancel( $member_id, $wcfm_membership_id );
@@ -170,6 +225,10 @@ class wcfmvm_paypal_ipn_handler {
 		do_action('wcfmvm_paypal_ipn_processed', $this->ipn_data);
 		
 		do_action('wcfmvm_payment_ipn_processed', $this->ipn_data);
+		
+		if ( ! empty( $txn_id ) ) {
+			update_option( 'wcfmvm_paypal_txn_' . $txn_id, true );
+		}
 						
 		return true;
 	}

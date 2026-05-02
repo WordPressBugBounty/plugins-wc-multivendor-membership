@@ -13,15 +13,6 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Loco https://localise.biz/\n"
 
-#: core/class-wcfmvm.php:1682
-msgid "Vendor Approval"
-msgstr ""
-
-#: core/class-wcfmvm.php:1704
-#, php-format
-msgid "<b>%s</b> (Store: <b>%s</b>) subscription for <b>%s</b> plan waiting for approval."
-msgstr "<b>%s</b> (Loja: <b>%s</b>) assinatura para o <b>%s</b> plano esta aguardando aprovação."
-
 #: controllers/wcfmvm-controller-memberships.php:79
 msgid "Plan type: "
 msgstr "Tipo de Plano:"
@@ -37,13 +28,11 @@ msgstr "Comissão:"
 
 #: core/class-wcfmvm-ajax.php:264
 #: templates/vendor_registration.php:161
-#: views/wcfmvm-view-memberships-settings.php:468
 msgid "First Name"
 msgstr "Nome"
 
 #: core/class-wcfmvm-ajax.php:270
 #: templates/vendor_registration.php:162
-#: views/wcfmvm-view-memberships-settings.php:469
 msgid "Last Name"
 msgstr "Sobrenome"
 
@@ -85,28 +74,22 @@ msgid "Reject"
 msgstr "Rejeitar"
 
 #: core/class-wcfmvm-ajax.php:395
-#: core/class-wcfmvm-frontend.php:420
 msgid "Update"
 msgstr "Atualizar"
 
-#: core/class-wcfmvm.php:1783
-#, php-format
-msgid "<b>%s</b> (Store: <b>%s</b>) membership plan <b>%s</b> has been cancelled."
-msgstr "<b>%s</b> (Loja: <b>%s</b>) Plano <b>%s</b> foi cancelado."
-
-#: core/class-wcfmvm-ajax.php:554
+#: core/class-wcfmvm-ajax.php:563
 msgid "Your membership successfully cancelled."
 msgstr "Sua plano foi cancelado com sucesso."
 
-#: core/class-wcfmvm-ajax.php:557
+#: core/class-wcfmvm-ajax.php:566
 msgid "Your membership can not be cancelled right now, please contact your store admin."
 msgstr "Seu plano não pode ser cancelado neste momento, por favor, contate o administrador."
 
-#: core/class-wcfmvm-ajax.php:591
+#: core/class-wcfmvm-ajax.php:609
 msgid "Vendor membership successfully changed."
 msgstr "Plano do lojista modificado com sucesso."
 
-#: core/class-wcfmvm-ajax.php:594
+#: core/class-wcfmvm-ajax.php:612
 msgid "Vendor membership can not be changed right now, please try after sometime."
 msgstr "O plano não pode ser modificado agora, tente novamente mais tarde."
 
@@ -139,39 +122,39 @@ msgid "Membership"
 msgstr "Plano"
 
 #: core/class-wcfmvm-frontend.php:177
+#: views/wcfmvm-view-memberships-settings.php:398
 #: helpers/wcfmvm-core-functions.php:198
 #: helpers/wcfmvm-core-functions.php:211
 #: includes/shortcodes/class-wcfmvm-shortcode-vendor-registration.php:32
-#: views/wcfmvm-view-memberships-settings.php:398
 msgid "Registration"
 msgstr "Registro"
 
+#: core/class-wcfmvm.php:1370
 #: core/class-wcfmvm-frontend.php:260
 #: core/class-wcfmvm-frontend.php:568
 #: core/class-wcfmvm-frontend.php:1181
-#: core/class-wcfmvm.php:1370
-#: templates/vendor_membership.php:129
 #: templates/vendor_payment.php:131
+#: templates/vendor_membership.php:129
 #: views/wcfmvm-view-memberships-manage.php:232
 msgid "Day(s)"
 msgstr "Dia(s)"
 
+#: core/class-wcfmvm.php:1370
 #: core/class-wcfmvm-frontend.php:260
 #: core/class-wcfmvm-frontend.php:568
 #: core/class-wcfmvm-frontend.php:1181
-#: core/class-wcfmvm.php:1370
-#: templates/vendor_membership.php:129
 #: templates/vendor_payment.php:131
+#: templates/vendor_membership.php:129
 #: views/wcfmvm-view-memberships-manage.php:232
 msgid "Month(s)"
 msgstr "Mês(s)"
 
+#: core/class-wcfmvm.php:1370
 #: core/class-wcfmvm-frontend.php:260
 #: core/class-wcfmvm-frontend.php:568
 #: core/class-wcfmvm-frontend.php:1181
-#: core/class-wcfmvm.php:1370
-#: templates/vendor_membership.php:129
 #: templates/vendor_payment.php:131
+#: templates/vendor_membership.php:129
 #: views/wcfmvm-view-memberships-manage.php:232
 msgid "Year(s)"
 msgstr "Ano(s)"
@@ -198,9 +181,9 @@ msgstr "Modo de Pagamento:"
 
 #: core/class-wcfmvm-frontend.php:360
 #: core/class-wcfmvm-frontend.php:663
+#: templates/vendor_payment.php:139
 #: templates/vendor_membership.php:153
 #: templates/vendor_membership.php:220
-#: templates/vendor_payment.php:139
 msgid "One time payment"
 msgstr "Pagamento Único"
 
@@ -222,10 +205,10 @@ msgstr "com %s o primeiro %s %s"
 
 #: core/class-wcfmvm-frontend.php:368
 #: core/class-wcfmvm-frontend.php:671
-#: templates/vendor_membership.php:160
-#: templates/vendor_membership.php:227
 #: templates/vendor_payment.php:145
 #: templates/vendor_payment.php:161
+#: templates/vendor_membership.php:160
+#: templates/vendor_membership.php:227
 #, php-format
 msgid "with %s %s free trial"
 msgstr "com %s %s dias de avaliação"
@@ -307,65 +290,14 @@ msgstr "Adicionar permissão personalizada para cada nível de plano."
 msgid "WCFM - Groups & Staffs"
 msgstr "WCFM - Grupos & Colaboradores"
 
-#: controllers/wcfmvm-controller-memberships-manage.php:98
 #: core/class-wcfmvm-shortcode.php:66
 #: core/class-wcfmvm-shortcode.php:76
 #: templates/vendor_membership.php:23
+#: controllers/wcfmvm-controller-memberships-manage.php:98
 #: views/wcfmvm-view-memberships-manage.php:24
 #: views/wcfmvm-view-memberships-settings.php:34
 msgid "Subscribe Now"
 msgstr ""
-
-#: core/class-wcfmvm.php:355
-msgid "Progress Bar Color"
-msgstr "Cor da Barra de Progresso"
-
-#: core/class-wcfmvm.php:362
-msgid "Table Border Color"
-msgstr "Cor da Borda da Tabela"
-
-#: core/class-wcfmvm.php:363
-msgid "Table Text Color"
-msgstr "Cor do Texto da Tabela"
-
-#: core/class-wcfmvm.php:364
-msgid "Table Background Color"
-msgstr "Cor de Fundo da Tabela"
-
-#: core/class-wcfmvm.php:365
-msgid "Table Cell Heighlighter Color"
-msgstr "Table Cell Heighlighter Color"
-
-#: core/class-wcfmvm.php:357
-msgid "Membership Title Color"
-msgstr "Cor do Título do Plano"
-
-#: core/class-wcfmvm.php:359
-msgid "Membership Price Color"
-msgstr "Cor do Preço do Plano"
-
-#: core/class-wcfmvm.php:360
-msgid "Membership Price Description Color"
-msgstr "Cor da Descrição do Preço do Plano"
-
-#: core/class-wcfmvm.php:361
-msgid "Membership Description Color"
-msgstr "Cor da Descrição do Plano"
-
-#: core/class-wcfmvm.php:1131
-#: core/class-wcfmvm.php:1285
-msgid "Welcome to the store!"
-msgstr ""
-
-#: core/class-wcfmvm.php:1216
-#: core/class-wcfmvm.php:1325
-msgid "New Vendor"
-msgstr ""
-
-#: core/class-wcfmvm.php:1232
-#, php-format
-msgid "<b>%s</b> (Store: <b>%s</b>) subscribed for <b>%s</b> membership plan."
-msgstr "<b>%s</b> (Loja: <b>%s</b>) assinou <b>%s</b> o plano."
 
 #: helpers/class-wcfmvm-install.php:98
 msgid "Vendor Membership"
@@ -379,31 +311,26 @@ msgstr "PayPal"
 msgid "Bank Transfer"
 msgstr "Transferência Bancária"
 
+#: templates/vendor_registration.php:431
 #: helpers/wcfmvm-core-functions.php:197
 #: helpers/wcfmvm-core-functions.php:212
-#: templates/vendor_registration.php:431
 msgid "Plans"
 msgstr "Planos"
 
+#: templates/vendor_payment.php:105
 #: helpers/wcfmvm-core-functions.php:199
 #: helpers/wcfmvm-core-functions.php:213
-#: templates/vendor_payment.php:105
 msgid "Confirmation"
 msgstr ""
 
-#: core/class-wcfmvm-pay-for-product.php:278
-#: core/class-wcfmvm-pay-for-product.php:307
-#: helpers/wcfmvm-core-functions.php:200
-#: helpers/wcfmvm-core-functions.php:214
-#: views/emails/email-verification.php:27
-#: views/emails/plain/email-verification.php:27
 #: views/wcfmvm-view-memberships-manage.php:437
 #: views/wcfmvm-view-memberships-settings.php:547
+#: helpers/wcfmvm-core-functions.php:200
+#: helpers/wcfmvm-core-functions.php:214
 msgid "Thank You"
 msgstr "Obrigado"
 
 #: helpers/wcfmvm-core-functions.php:223
-#: views/wcfmvm-view-memberships-settings.php:499
 msgid "Payment"
 msgstr "Pagamento"
 
@@ -510,7 +437,6 @@ msgstr ""
 #: templates/vendor_registration.php:389
 #: templates/vendor_registration.php:397
 #: templates/vendor_registration.php:399
-#: views/wcfmvm-view-memberships-settings.php:473
 msgid "Terms & Conditions"
 msgstr ""
 
@@ -527,7 +453,6 @@ msgid "Setup your store"
 msgstr "Configure sua loja"
 
 #: views/wcfmvm-view-capability.php:31
-#: views/wcfmvm-view-capability.php:35
 msgid "Analytics"
 msgstr "Analytics"
 
@@ -832,37 +757,20 @@ msgstr "Grupo"
 msgid "Actions"
 msgstr "Ações"
 
-#. Description of the plugin/theme
+#. Description of the plugin
 msgid "A simple membership plugin for your multi-vendor marketplace."
 msgstr "Um simples plugin de membros para o seu marketplace."
 
-#. Plugin URI of the plugin/theme
+#. URI of the plugin
 msgid "https://wclovers.com/product/woocommerce-multivendor-membership"
 msgstr ""
 
-#. Author of the plugin/theme
+#. Author of the plugin
 msgid "WC Lovers"
 msgstr "WC Lovers"
 
-#. Author URI of the plugin/theme
+#. Author URI of the plugin
 msgid "https://wclovers.com"
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships-registration.php:51
-msgid "Captcha failed, please try again."
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships-registration.php:60
-#: core/class-wcfmvm-ajax.php:705
-msgid "Please provide a valid email address."
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships-registration.php:80
-msgid "Please enter a valid account username."
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships-registration.php:87
-msgid "There has some error in submitted data."
 msgstr ""
 
 #: controllers/wcfmvm-controller-memberships-payment.php:36
@@ -870,34 +778,13 @@ msgstr ""
 msgid "Not a valid member"
 msgstr ""
 
+#: core/class-wcfmvm-ajax.php:910
+#: core/class-wcfmvm-ajax.php:917
+#: core/class-wcfmvm-ajax.php:923
+#: core/class-wcfmvm-ajax.php:930
 #: controllers/wcfmvm-controller-memberships-registration.php:240
 #: controllers/wcfmvm-controller-memberships-registration.php:247
-#: core/class-wcfmvm-ajax.php:892
-#: core/class-wcfmvm-ajax.php:899
-#: core/class-wcfmvm-ajax.php:905
-#: core/class-wcfmvm-ajax.php:912
 msgid "Shop Name not available."
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships-settings.php:31
-#: core/class-wcfmvm-ajax.php:71
-#: core/class-wcfmvm-ajax.php:137
-#: core/class-wcfmvm-ajax.php:217
-#: core/class-wcfmvm-ajax.php:407
-#: core/class-wcfmvm-ajax.php:537
-#: core/class-wcfmvm-ajax.php:568
-#: core/class-wcfmvm-ajax.php:632
-#: core/class-wcfmvm-ajax.php:668
-#: core/class-wcfmvm-ajax.php:700
-#: core/class-wcfmvm-ajax.php:762
-#: core/class-wcfmvm-ajax.php:881
-#: core/class-wcfmvm-ajax.php:924
-#: core/class-wcfmvm-pay-for-product.php:210
-msgid "Invalid nonce! Refresh your page and try again."
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships-settings.php:158
-msgid "Settings saved successfully"
 msgstr ""
 
 #: controllers/wcfmvm-controller-memberships.php:98
@@ -908,45 +795,6 @@ msgstr ""
 #: controllers/wcfmvm-controller-memberships.php:98
 #: views/wcfmvm-view-memberships-manage.php:350
 msgid "Integrate Payment Options"
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships.php:130
-msgid "Edit"
-msgstr ""
-
-#: controllers/wcfmvm-controller-memberships.php:132
-#: controllers/wcfmvm-controller-memberships.php:134
-msgid "Delete"
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:83
-#: core/class-wcfmvm-ajax.php:93
-#: core/class-wcfmvm-ajax.php:113
-#: core/class-wcfmvm-ajax.php:222
-#: core/class-wcfmvm-ajax.php:412
-#: core/class-wcfmvm-ajax.php:542
-#: core/class-wcfmvm-ajax.php:573
-#: core/class-wcfmvm-ajax.php:610
-#: core/class-wcfmvm-ajax.php:637
-#: core/class-wcfmvm-ajax.php:673
-#: core/class-wcfmvm-pay-for-product.php:215
-msgid "You don&#8217;t have permission to do this."
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:259
-msgid "Vendor Application"
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:314
-#: views/wcfmvm-view-memberships-settings.php:471
-msgid "Store Address"
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:325
-#: templates/vendor_registration.php:130
-#: templates/vendor_registration.php:260
-#: views/wcfmvm-view-memberships-settings.php:472
-msgid "Store Phone"
 msgstr ""
 
 #: core/class-wcfmvm-ajax.php:378
@@ -965,29 +813,19 @@ msgstr ""
 msgid "Vendor Approval status update failed."
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:552
+#: core/class-wcfmvm-ajax.php:561
 msgid "Manual Cancellation"
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:605
-msgid "Invalid security token sent."
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:646
+#: core/class-wcfmvm-ajax.php:664
 msgid "Membership Renewal Update"
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:650
+#: core/class-wcfmvm-ajax.php:668
 msgid "Next Renewal"
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:655
-#: views/wcfmvm-view-memberships-manage.php:559
-#: views/wcfmvm-view-memberships-settings.php:821
-msgid "Submit"
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:686
+#: core/class-wcfmvm-ajax.php:704
 #: core/class-wcfmvm-frontend.php:308
 #: core/class-wcfmvm-frontend.php:351
 #: core/class-wcfmvm-frontend.php:618
@@ -995,44 +833,30 @@ msgstr ""
 msgid "Never Expire"
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:689
+#: core/class-wcfmvm-ajax.php:707
 msgid "Next renewal successfully updated."
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:748
+#: core/class-wcfmvm-ajax.php:766
+#, php-format
 msgid "Verification code sent to your email: %s."
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:750
+#: core/class-wcfmvm-ajax.php:768
 msgid "Email verification not working right now, please try after sometime."
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:772
-msgid "Please provide a valid phone number."
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:792
+#: core/class-wcfmvm-ajax.php:810
 msgid "Your verification code is"
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:810
-msgid "SMS Sent Successfully."
-msgstr ""
-
-#: core/class-wcfmvm-ajax.php:863
+#: core/class-wcfmvm-ajax.php:881
+#, php-format
 msgid "Verification code sent to your phone: %s."
 msgstr ""
 
-#: core/class-wcfmvm-ajax.php:869
+#: core/class-wcfmvm-ajax.php:887
 msgid "Phone verification not working right now, please try after sometime."
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:176
-msgid "This page should have shortcode - wcfm_vendor_membership"
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:177
-msgid "This is an optional page, you may use this as Free Membership registration page. This page should have shortcode - wcfm_vendor_registration"
 msgstr ""
 
 #: core/class-wcfmvm-frontend.php:303
@@ -1075,12 +899,6 @@ msgstr ""
 msgid "New"
 msgstr ""
 
-#: core/class-wcfmvm-frontend.php:784
-#: core/class-wcfmvm-frontend.php:790
-#: core/class-wcfmvm-frontend.php:791
-msgid "Vendor"
-msgstr ""
-
 #: core/class-wcfmvm-frontend.php:787
 msgid "Reminder Membership"
 msgstr ""
@@ -1094,7 +912,6 @@ msgid "Disable"
 msgstr ""
 
 #: core/class-wcfmvm-frontend.php:791
-#: views/wcfmvm-view-memberships-settings.php:480
 #: views/wcfmvm-view-memberships-settings.php:533
 msgid "Enable"
 msgstr ""
@@ -1102,36 +919,6 @@ msgstr ""
 #: core/class-wcfmvm-frontend.php:882
 #: templates/vendor_registration.php:182
 msgid "your_store"
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:882
-#: core/class-wcfmvm-frontend.php:932
-msgid "Too short"
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:882
-#: core/class-wcfmvm-frontend.php:932
-msgid "Weak"
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:882
-#: core/class-wcfmvm-frontend.php:932
-msgid "Good"
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:882
-#: core/class-wcfmvm-frontend.php:932
-msgid "Strong"
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:882
-#: core/class-wcfmvm-frontend.php:932
-msgid "Password strength should be atleast \"Good\"."
-msgstr ""
-
-#: core/class-wcfmvm-frontend.php:882
-#: core/class-wcfmvm-frontend.php:932
-msgid "Choose "
 msgstr ""
 
 #: core/class-wcfmvm-frontend.php:1232
@@ -1142,65 +929,11 @@ msgstr ""
 msgid "Stripe Plan ID missing."
 msgstr ""
 
-#: core/class-wcfmvm-library.php:105
-msgid "Clear"
-msgstr ""
-
-#: core/class-wcfmvm-library.php:105
-msgid "Default"
-msgstr ""
-
-#: core/class-wcfmvm-library.php:105
-msgid "Select Color"
-msgstr ""
-
-#: core/class-wcfmvm-library.php:123
-#: core/class-wcfmvm-library.php:130
-#: core/class-wcfmvm-library.php:137
-msgid ""
-"Do you want to cancel this membership?\r\n"
-"You can't undo this action ..."
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:31
-#: views/wcfmvm-view-memberships-manage.php:253
-#: views/wcfmvm-view-memberships.php:34
-msgid "Settings"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:56
-msgid "Documentation"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:57
-msgid "View WCFM Video Tutorial"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:57
-msgid "Video Tutorial"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:58
-msgid "Visit premium customer support"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:58
-msgid "Support"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:60
-msgid "Any WC help feel free to contact us"
-msgstr ""
-
-#: core/class-wcfmvm-non-ajax.php:60
-msgid "Customization Help"
-msgstr ""
-
+#: core/class-wcfmvm.php:320
 #: core/class-wcfmvm-pay-for-product.php:61
 #: core/class-wcfmvm-pay-for-product.php:65
 #: core/class-wcfmvm-pay-for-product.php:286
 #: core/class-wcfmvm-pay-for-product.php:314
-#: core/class-wcfmvm.php:320
 msgid "Pay for Product"
 msgstr ""
 
@@ -1245,6 +978,7 @@ msgid "Increase your product limit .."
 msgstr ""
 
 #: core/class-wcfmvm-pay-for-product.php:191
+#, php-format
 msgid "Increase Limit By %s"
 msgstr ""
 
@@ -1264,12 +998,8 @@ msgstr ""
 msgid "Pay for Product Credit Limit"
 msgstr ""
 
-#: core/class-wcfmvm-pay-for-product.php:275
-#: core/class-wcfmvm-pay-for-product.php:304
-msgid "Hi"
-msgstr ""
-
 #: core/class-wcfmvm-pay-for-product.php:277
+#, php-format
 msgid "%s has just purchased product credit limit: %s."
 msgstr ""
 
@@ -1279,10 +1009,12 @@ msgstr ""
 
 #: core/class-wcfmvm-pay-for-product.php:306
 #: core/class-wcfmvm-pay-for-product.php:330
+#, php-format
 msgid "You have just received product credit limit: %s"
 msgstr ""
 
 #: core/class-wcfmvm-pay-for-product.php:326
+#, php-format
 msgid "%s has just received product credit limit: %s"
 msgstr ""
 
@@ -1296,182 +1028,13 @@ msgstr ""
 msgid "Kindly logout from Admin account to have \"Subscribe Now\" button."
 msgstr ""
 
-#: core/class-wcfmvm.php:356
-msgid "Membership Title Background Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:358
-msgid "Table Body Background Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:366
-msgid "Button Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:367
-msgid "Button Hover Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:368
-msgid "Button Text Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:369
-msgid "Preview Box Background Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:370
-msgid "Preview Box Text Color"
-msgstr ""
-
-#: core/class-wcfmvm.php:1122
-#: core/class-wcfmvm.php:1214
-#: core/class-wcfmvm.php:1279
-#: core/class-wcfmvm.php:1324
-msgid "Visit now ..."
-msgstr ""
-
-#: core/class-wcfmvm.php:1133
-#: core/class-wcfmvm.php:1218
-msgid "Membership Subscription Renewed"
-msgstr ""
-
-#: core/class-wcfmvm.php:1135
-#: core/class-wcfmvm.php:1220
-msgid "Membership Subscription Change"
-msgstr ""
-
-#: core/class-wcfmvm.php:1234
-msgid "<b>%s</b> (Store: <b>%s</b>) has renewed membership plan to <b>%s</b>."
-msgstr ""
-
-#: core/class-wcfmvm.php:1236
-msgid "<b>%s</b> (Store: <b>%s</b>) has changed membership plan to <b>%s</b>."
-msgstr ""
-
-#: core/class-wcfmvm.php:1242
-msgid "You have subscribed for <b>%s</b> membership plan."
-msgstr ""
-
-#: core/class-wcfmvm.php:1244
-msgid "You have renewed membership plan to <b>%s</b>."
-msgstr ""
-
-#: core/class-wcfmvm.php:1246
-msgid "You have changed membership plan to <b>%s</b>."
-msgstr ""
-
 #: core/class-wcfmvm.php:1302
 #: views/wcfmvm-view-memberships-settings.php:243
 msgid "[{site_name}] A new vendor registered"
 msgstr ""
 
-#: core/class-wcfmvm.php:1335
-msgid "<b>%s</b> (Store: <b>%s</b>) successfully registered to our site."
-msgstr ""
-
-#: core/class-wcfmvm.php:1339
-msgid "You have successfully registered to our site."
-msgstr ""
-
-#: core/class-wcfmvm.php:1583
-msgid "WC Subscription Cancellation"
-msgstr ""
-
-#: core/class-wcfmvm.php:1677
-msgid "No Membership"
-msgstr ""
-
-#: core/class-wcfmvm.php:1681
-msgid "Check Here ..."
-msgstr ""
-
-#: core/class-wcfmvm.php:1702
-msgid "<b>%s</b> (Store: <b>%s</b>) vendor application waiting for approval."
-msgstr ""
-
-#: core/class-wcfmvm.php:1772
-msgid "Membership Subscription Cancel"
-msgstr ""
-
-#: core/class-wcfmvm.php:1789
-msgid "Your membership plan <b>%s</b> has been cancelled."
-msgstr ""
-
-#: core/class-wcfmvm.php:1828
-#: core/class-wcfmvm.php:1955
-msgid "<b>%s</b> (Store: <b>%s</b>) has been disabled."
-msgstr ""
-
-#: core/class-wcfmvm.php:1834
-#: core/class-wcfmvm.php:1961
-msgid "Your Store: <b>%s</b> has been disabled."
-msgstr ""
-
-#: core/class-wcfmvm.php:1901
-msgid "Membership Subscription Expired"
-msgstr ""
-
-#: core/class-wcfmvm.php:1912
-msgid "<b>%s</b> (Store: <b>%s</b>) membership plan <b>%s</b> has been expired."
-msgstr ""
-
-#: core/class-wcfmvm.php:1918
-msgid "Your membership plan <b>%s</b> has been expired."
-msgstr ""
-
-#: core/class-wcfmvm.php:2015
-msgid "Subscription cancelled at %s"
-msgstr ""
-
-#: core/class-wcfmvm.php:2174
-#: core/class-wcfmvm.php:2177
-msgid "in"
-msgstr ""
-
-#: core/class-wcfmvm.php:2174
-#: core/class-wcfmvm.php:2177
-msgid "Days"
-msgstr ""
-
-#: core/class-wcfmvm.php:2181
-msgid "Today"
-msgstr ""
-
-#: core/class-wcfmvm.php:2212
-msgid "Membership Subscription Renewal"
-msgstr ""
-
-#: core/class-wcfmvm.php:2214
-msgid "Subscription Next Payment"
-msgstr ""
-
-#: core/class-wcfmvm.php:2229
-msgid "<b>%s</b> membership plan (<strong>%s</strong>) will expire <b>%s</b>."
-msgstr ""
-
-#: core/class-wcfmvm.php:2231
-msgid "<b>%s</b> membership plan (<strong>%s</strong>) subscription next billing date <b>%s</b>."
-msgstr ""
-
-#: core/class-wcfmvm.php:2239
-msgid "Your membership plan (<strong>%s</strong>) will expire <b>%s</b>."
-msgstr ""
-
-#: core/class-wcfmvm.php:2241
-msgid "Your membership plan (<strong>%s</strong>) subscription next billing date <b>%s</b>."
-msgstr ""
-
 #: helpers/class-wcfmvm-install.php:99
 msgid "Vendor Registration"
-msgstr ""
-
-#: helpers/wcfmvm-core-functions.php:6
-msgid "%sWCFM - Membership is inactive.%s The %sWooCommerce plugin%s must be active for the WCFM - Membership to work. Please %sinstall & activate WooCommerce%s"
-msgstr ""
-
-#: helpers/wcfmvm-core-functions.php:16
-msgid "%sWCFM - Membership is inactive.%s The %sWooCommerce Frontend Manager%s must be active for the WCFM - Membership to work. Please %sinstall & activate WooCommerce Frontend Manager%s"
 msgstr ""
 
 #: helpers/wcfmvm-core-functions.php:151
@@ -1506,9 +1069,9 @@ msgstr ""
 msgid "Subscription Failed due to invalid payment method"
 msgstr ""
 
+#: views/wcfmvm-view-memberships-settings.php:534
 #: helpers/wcfmvm-core-functions.php:377
 #: helpers/wcfmvm-core-functions.php:394
-#: views/wcfmvm-view-memberships-settings.php:534
 msgid "Tax"
 msgstr ""
 
@@ -1545,6 +1108,7 @@ msgid "Subject"
 msgstr ""
 
 #: includes/emails/class-wcfmvm-email-email-verification.php:151
+#, php-format
 msgid "This controls the email subject line. Leave it blank to use the default subject: <code>%s</code>."
 msgstr ""
 
@@ -1553,6 +1117,7 @@ msgid "Email Heading"
 msgstr ""
 
 #: includes/emails/class-wcfmvm-email-email-verification.php:158
+#, php-format
 msgid "This controls the main heading contained within the email notification. Leave it blank to use the default heading: <code>%s</code>."
 msgstr ""
 
@@ -1582,22 +1147,26 @@ msgid "Extend Subscription"
 msgstr ""
 
 #: templates/vendor_payment.php:66
+#, php-format
 msgid "Are you lost? <a href=\"%s\">Continue to Payment</a>"
 msgstr ""
 
 #: templates/vendor_payment.php:144
 #: templates/vendor_payment.php:160
 #: templates/vendor_payment.php:166
+#, php-format
 msgid "%s for each %s %s"
 msgstr ""
 
 #: templates/vendor_payment.php:149
 #: templates/vendor_payment.php:156
+#, php-format
 msgid "%s for first %s %s"
 msgstr ""
 
 #: templates/vendor_payment.php:150
 #: templates/vendor_payment.php:157
+#, php-format
 msgid "and then %s for each %s %s"
 msgstr ""
 
@@ -1607,12 +1176,6 @@ msgstr ""
 
 #: templates/vendor_registration.php:105
 msgid "Email Verification Code: "
-msgstr ""
-
-#: templates/vendor_registration.php:105
-#: templates/vendor_registration.php:146
-#: templates/vendor_registration.php:389
-msgid "This field is required."
 msgstr ""
 
 #: templates/vendor_registration.php:105
@@ -1644,34 +1207,6 @@ msgstr ""
 msgid "Un-available"
 msgstr ""
 
-#: templates/vendor_registration.php:244
-msgid "Address 1"
-msgstr ""
-
-#: templates/vendor_registration.php:245
-msgid "Address 2"
-msgstr ""
-
-#: templates/vendor_registration.php:246
-msgid "Country"
-msgstr ""
-
-#: templates/vendor_registration.php:247
-msgid "City/Town"
-msgstr ""
-
-#: templates/vendor_registration.php:248
-msgid "State/County"
-msgstr ""
-
-#: templates/vendor_registration.php:249
-msgid "Postcode/Zip"
-msgstr ""
-
-#: templates/vendor_registration.php:357
-msgid "-Select-"
-msgstr ""
-
 #: templates/vendor_registration.php:434
 msgid "Your user role not allowed to subscription!"
 msgstr ""
@@ -1680,17 +1215,14 @@ msgstr ""
 msgid "Go to Dashboard"
 msgstr ""
 
-#: views/emails/email-verification.php:19
-#: views/emails/plain/email-verification.php:19
-msgid "Hi,"
-msgstr ""
-
 #: views/emails/email-verification.php:23
 #: views/emails/plain/email-verification.php:23
+#, php-format
 msgid "Here is your email verification code - <b>%s</b>"
 msgstr ""
 
 #: views/wcfmvm-view-memberships-disable.php:21
+#, php-format
 msgid "Restricted: You are not allowed to access this page. May be you do not have a %sMulti-vendor Plugin%s on your site."
 msgstr ""
 
@@ -1750,14 +1282,11 @@ msgid "WC Checkout option will allow to process payment using WC default checkou
 msgstr ""
 
 #: views/wcfmvm-view-memberships-manage.php:351
-msgid "WC Product"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-manage.php:351
 msgid "This product will be used at WC checkout for membership purchase."
 msgstr ""
 
 #: views/wcfmvm-view-memberships-manage.php:369
+#, php-format
 msgid "<b>PayPal</b> does not support Free trial, if leave empty it will be considered as <b>%s1</b>."
 msgstr ""
 
@@ -1853,10 +1382,6 @@ msgstr ""
 msgid "Registration Advanced Setting"
 msgstr ""
 
-#: views/wcfmvm-view-memberships-settings.php:363
-msgid "General"
-msgstr ""
-
 #: views/wcfmvm-view-memberships-settings.php:368
 msgid "--Select page-- "
 msgstr ""
@@ -1907,42 +1432,6 @@ msgstr ""
 
 #: views/wcfmvm-view-memberships-settings.php:443
 msgid "Help Message"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:470
-msgid "User Name"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:474
-msgid "Terms Page"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:481
-msgid "Field Type"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:482
-msgid "Label"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:483
-msgid "Options"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:483
-msgid "Insert option values | separated"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:484
-msgid "Content"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:485
-msgid "Help Content"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:486
-msgid "Required?"
 msgstr ""
 
 #: views/wcfmvm-view-memberships-settings.php:506
@@ -2136,11 +1625,6 @@ msgstr ""
 
 #: views/wcfmvm-view-memberships-settings.php:732
 #: views/wcfmvm-view-memberships-settings.php:754
-msgid "Archived"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:732
-#: views/wcfmvm-view-memberships-settings.php:754
 msgid "Save as Draft"
 msgstr ""
 
@@ -2182,38 +1666,257 @@ msgstr ""
 msgid "Is user notified on rejection?"
 msgstr ""
 
-#: views/wcfmvm-view-memberships-settings.php:791
-msgid "Style"
-msgstr ""
-
-#: views/wcfmvm-view-memberships-settings.php:808
-msgid "Reset to Default"
-msgstr ""
-
-#: views/wcfmvm-view-memberships.php:36
-msgid "Add New"
-msgstr ""
-
 #: views/wcfmvm-view-memberships.php:55
 #: views/wcfmvm-view-memberships.php:65
 msgid "Pay Mode"
 msgstr ""
 
-#: views/wcfmvm-view-memberships.php:57
-#: views/wcfmvm-view-memberships.php:67
-msgid "Store"
-msgstr ""
-
-#. Plugin Name of the plugin/theme
+#. Name of the plugin
 msgid "WCFM - WooCommerce Multivendor Membership"
 msgstr ""
 
-#: helpers/class-wcfmvm-install.php:98
-msgctxt "page_slug"
-msgid "vendor-membership"
+#: core/class-wcfmvm-library.php:123
+#: core/class-wcfmvm-library.php:130
+#: core/class-wcfmvm-library.php:137
+msgid ""
+"Do you want to cancel this membership?\n"
+"You can't undo this action ..."
 msgstr ""
 
-#: helpers/class-wcfmvm-install.php:99
-msgctxt "page_slug"
-msgid "vendor-register"
+#: core/class-wcfmvm-ajax.php:550
+#: core/class-wcfmvm-ajax.php:553
+#: core/class-wcfmvm-ajax.php:590
+#: core/class-wcfmvm-ajax.php:593
+msgid "You do not have permission to do this."
+msgstr ""
+
+#: core/class-wcfmvm.php:1236
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) has changed membership plan to <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:1234
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) has renewed membership plan to <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:1783
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) membership plan <b>%s</b> has been cancelled."
+msgstr ""
+
+#: core/class-wcfmvm.php:1912
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) membership plan <b>%s</b> has been expired."
+msgstr ""
+
+#: core/class-wcfmvm.php:1232
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) subscribed for <b>%s</b> membership plan."
+msgstr ""
+
+#: core/class-wcfmvm.php:1704
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) subscription for <b>%s</b> plan waiting for approval."
+msgstr ""
+
+#: core/class-wcfmvm.php:1335
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) successfully registered to our site."
+msgstr ""
+
+#: core/class-wcfmvm.php:1702
+#, php-format
+msgid "<b>%s</b> (Store: <b>%s</b>) vendor application waiting for approval."
+msgstr ""
+
+#: core/class-wcfmvm.php:2231
+#, php-format
+msgid "<b>%s</b> membership plan (<strong>%s</strong>) subscription next billing date <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:2229
+#, php-format
+msgid "<b>%s</b> membership plan (<strong>%s</strong>) will expire <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:366
+msgid "Button Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:367
+msgid "Button Hover Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:368
+msgid "Button Text Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:1681
+msgid "Check Here ..."
+msgstr ""
+
+#: core/class-wcfmvm.php:2174
+#: core/class-wcfmvm.php:2177
+msgid "Days"
+msgstr ""
+
+#: core/class-wcfmvm.php:2174
+#: core/class-wcfmvm.php:2177
+msgid "in"
+msgstr ""
+
+#: core/class-wcfmvm.php:361
+msgid "Membership Description Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:359
+msgid "Membership Price Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:360
+msgid "Membership Price Description Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:1772
+msgid "Membership Subscription Cancel"
+msgstr ""
+
+#: core/class-wcfmvm.php:1135
+#: core/class-wcfmvm.php:1220
+msgid "Membership Subscription Change"
+msgstr ""
+
+#: core/class-wcfmvm.php:1901
+msgid "Membership Subscription Expired"
+msgstr ""
+
+#: core/class-wcfmvm.php:2212
+msgid "Membership Subscription Renewal"
+msgstr ""
+
+#: core/class-wcfmvm.php:1133
+#: core/class-wcfmvm.php:1218
+msgid "Membership Subscription Renewed"
+msgstr ""
+
+#: core/class-wcfmvm.php:356
+msgid "Membership Title Background Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:357
+msgid "Membership Title Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:1216
+#: core/class-wcfmvm.php:1325
+msgid "New Vendor"
+msgstr ""
+
+#: core/class-wcfmvm.php:1677
+msgid "No Membership"
+msgstr ""
+
+#: core/class-wcfmvm.php:369
+msgid "Preview Box Background Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:370
+msgid "Preview Box Text Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:355
+msgid "Progress Bar Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:2015
+#, php-format
+msgid "Subscription cancelled at %s"
+msgstr ""
+
+#: core/class-wcfmvm.php:2214
+msgid "Subscription Next Payment"
+msgstr ""
+
+#: core/class-wcfmvm.php:364
+msgid "Table Background Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:358
+msgid "Table Body Background Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:362
+msgid "Table Border Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:365
+msgid "Table Cell Heighlighter Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:363
+msgid "Table Text Color"
+msgstr ""
+
+#: core/class-wcfmvm.php:2181
+msgid "Today"
+msgstr ""
+
+#: core/class-wcfmvm.php:1682
+msgid "Vendor Approval"
+msgstr ""
+
+#: core/class-wcfmvm.php:1122
+#: core/class-wcfmvm.php:1214
+#: core/class-wcfmvm.php:1279
+#: core/class-wcfmvm.php:1324
+msgid "Visit now ..."
+msgstr ""
+
+#: core/class-wcfmvm.php:1583
+msgid "WC Subscription Cancellation"
+msgstr ""
+
+#: core/class-wcfmvm.php:1131
+#: core/class-wcfmvm.php:1285
+msgid "Welcome to the store!"
+msgstr ""
+
+#: core/class-wcfmvm.php:1246
+#, php-format
+msgid "You have changed membership plan to <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:1244
+#, php-format
+msgid "You have renewed membership plan to <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:1242
+#, php-format
+msgid "You have subscribed for <b>%s</b> membership plan."
+msgstr ""
+
+#: core/class-wcfmvm.php:1339
+msgid "You have successfully registered to our site."
+msgstr ""
+
+#: core/class-wcfmvm.php:2241
+#, php-format
+msgid "Your membership plan (<strong>%s</strong>) subscription next billing date <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:2239
+#, php-format
+msgid "Your membership plan (<strong>%s</strong>) will expire <b>%s</b>."
+msgstr ""
+
+#: core/class-wcfmvm.php:1789
+#, php-format
+msgid "Your membership plan <b>%s</b> has been cancelled."
+msgstr ""
+
+#: core/class-wcfmvm.php:1918
+#, php-format
+msgid "Your membership plan <b>%s</b> has been expired."
 msgstr ""
