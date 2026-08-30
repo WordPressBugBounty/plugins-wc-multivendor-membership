@@ -82,6 +82,11 @@ class WCFMvm_Frontend {
 
 		// Membership email translation support based on membership page language (wpml)
 		add_action( 'wcfm_membership_registration', array( &$this, 'wcfmvm_set_wpml_language' ), 10, 2 );
+
+		// Membership payment forms - one handler per payment method slug
+		add_action( 'wcfmvm_membership_payment_form_paypal', array( &$this, 'wcfmvm_membership_payment_form_paypal' ), 10, 3 );
+		add_action( 'wcfmvm_membership_payment_form_stripe', array( &$this, 'wcfmvm_membership_payment_form_stripe' ), 10, 3 );
+		add_action( 'wcfmvm_membership_payment_form_bank_transfer', array( &$this, 'wcfmvm_membership_payment_form_bank_transfer' ), 10, 3 );
 	}
 	
 	/**
@@ -1058,6 +1063,83 @@ class WCFMvm_Frontend {
  	}
  	
  	/**
+ 	 * Closing block of a membership payment form - message holder, submit button and </form>.
+ 	 *
+ 	 * Gateway handlers registered on `wcfmvm_membership_payment_form_{$payment_method}`
+ 	 * may call this to render the very same submit block core renders, instead of
+ 	 * repeating the markup.
+ 	 *
+ 	 * @param string $payment_method Payment method slug, used to build the button id.
+ 	 * @param string $button_class   Submit button classes. Keep `wcfm_membership_payment_button`
+ 	 *                               to submit through WCFM's own AJAX payment controller - that
+ 	 *                               controller only completes offline methods, see
+ 	 *                               get_wcfm_membership_offline_payment_methods(). Drop it when the
+ 	 *                               gateway submits the form itself (as Stripe does).
+ 	 * @param string $button_label   Submit button label, defaults to "Proceed".
+ 	 */
+ 	function wcfmvm_membership_payment_form_footer( $payment_method, $button_class = 'wcfm_membership_payment_button wcfm_submit_button', $button_label = '' ) {
+ 		if( !$button_label ) $button_label = __( 'Proceed', 'wc-multivendor-membership' );
+ 		?>
+ 		<div class="wcfm-clearfix"></div>
+		<div class="wcfm-message" tabindex="-1"></div>
+
+		<div id="wcfm_membership_payment_submit" class="wcfm_form_simple_submit_wrapper">
+			<input type="submit" name="save-data" value="<?php echo esc_attr( $button_label ); ?>" id="wcfm_membership_payment_button_<?php echo esc_attr( $payment_method ); ?>" class="<?php echo esc_attr( $button_class ); ?>" />
+		</div>
+		<div class="wcfm-clearfix"></div>
+	</form>
+	<?php
+ 	}
+
+ 	/**
+ 	 * PayPal membership payment form
+ 	 *
+ 	 * Registered on `wcfmvm_membership_payment_form_paypal`, dispatched from
+ 	 * templates/vendor_payment.php
+ 	 */
+ 	function wcfmvm_membership_payment_form_paypal( $membership_id, $member_id, $subscription = array() ) {
+ 		$this->generate_paypal_request_form( $membership_id, $member_id );
+ 		$this->wcfmvm_membership_payment_form_footer( 'paypal' );
+ 	}
+
+ 	/**
+ 	 * Stripe membership payment form
+ 	 *
+ 	 * Registered on `wcfmvm_membership_payment_form_stripe`, dispatched from
+ 	 * templates/vendor_payment.php. The submit block is rendered only when the
+ 	 * Stripe checkout session could be created - generate_stripe_request_form()
+ 	 * has already reported the reason otherwise and has opened no form to close.
+ 	 */
+ 	function wcfmvm_membership_payment_form_stripe( $membership_id, $member_id, $subscription = array() ) {
+ 		if( $this->generate_stripe_request_form( $membership_id, $member_id ) ) {
+ 			// Stripe submits the form through its own script, so this button is
+ 			// deliberately not a `wcfm_membership_payment_button`.
+ 			$this->wcfmvm_membership_payment_form_footer( 'stripe', 'wcfm_submit_button' );
+ 		}
+ 	}
+
+ 	/**
+ 	 * Bank Transfer membership payment form
+ 	 *
+ 	 * Registered on `wcfmvm_membership_payment_form_bank_transfer`, dispatched from
+ 	 * templates/vendor_payment.php
+ 	 */
+ 	function wcfmvm_membership_payment_form_bank_transfer( $membership_id, $member_id, $subscription = array() ) {
+ 		$wcfm_membership_options = get_option( 'wcfm_membership_options', array() );
+ 		$membership_payment_settings = array();
+		if( isset( $wcfm_membership_options['membership_payment_settings'] ) ) $membership_payment_settings = $wcfm_membership_options['membership_payment_settings'];
+		$bank_details = isset( $membership_payment_settings['bank_details'] ) ? $membership_payment_settings['bank_details'] : '';
+		?>
+		<form id="wcfm_membership_payment_form_bank_transfer" class="wcfm wcfm_membership_payment_form wcfm_membership_payment_form_non_free">
+			<input type="hidden" name="member_id" value="<?php echo esc_attr($member_id); ?>" />
+			<div class="wcfm_payment_option_details wcfm_payment_option_bank_transfer_deails">
+				<?php echo wp_kses_post(str_replace( "\n", "<br />", $bank_details )); ?>
+			</div>
+		<?php
+		$this->wcfmvm_membership_payment_form_footer( 'bank_transfer' );
+ 	}
+
+ 	/**
  	 * PayPal request form
  	 */
  	function generate_paypal_request_form( $membership_id, $member_id ) {
@@ -1106,17 +1188,19 @@ class WCFMvm_Frontend {
 			<input type="hidden" name="item_number" value="<?php echo esc_attr($membership_id); ?>">
 			<input type="hidden" name="item_name" value="<?php echo esc_html($title . ' - ' . $description); ?>">
 			
+			<?php /* Amounts rounded to the shop's price decimals - PayPal accepts at most
+			         two, and the IPN handler validates against these same values. */ ?>
 			<?php if( $subscription_type == 'one_time' ) { ?>
-		  	<input type="hidden" name="amount" value="<?php echo wcfmvm_membership_tax_price($one_time_amt); ?>" />
+		  	<input type="hidden" name="amount" value="<?php echo esc_attr( wc_format_decimal( wcfmvm_membership_tax_price($one_time_amt), wc_get_price_decimals() ) ); ?>" />
 		  <?php } else { ?>
 				<?php if( !empty( $trial_period ) ) { ?>
-					<input type="hidden" name="a1" value="<?php echo wcfmvm_membership_tax_price($trial_amt); ?>">
+					<input type="hidden" name="a1" value="<?php echo esc_attr( wc_format_decimal( wcfmvm_membership_tax_price($trial_amt), wc_get_price_decimals() ) ); ?>">
 					<input type="hidden" name="p1" value="<?php echo esc_attr($trial_period); ?>">
 					<input type="hidden" name="t1" value="<?php echo esc_attr($trial_period_type); ?>">
 				<?php } ?>
-				
+
 				<?php if( !empty( $billing_period ) && !empty( $billing_amt ) ) { ?>
-					<input type="hidden" name="a3" value="<?php echo wcfmvm_membership_tax_price($billing_amt); ?>">
+					<input type="hidden" name="a3" value="<?php echo esc_attr( wc_format_decimal( wcfmvm_membership_tax_price($billing_amt), wc_get_price_decimals() ) ); ?>">
 					<input type="hidden" name="p3" value="<?php echo esc_attr($billing_period); ?>">
 					<input type="hidden" name="t3" value="<?php echo esc_attr($billing_period_type); ?>">
 				<?php } ?>
@@ -1201,7 +1285,6 @@ class WCFMvm_Frontend {
     if( $subscription_type == 'one_time' ) {
     	$payment_amount = $one_time_amt;
     	$pay_description = wcfmvm_membership_tax_price($one_time_amt) . ' ' . $payment_currency;
-    	$notify_url = add_query_arg( 'wcfmvm_process_ipn', 'stripe_ipn', get_wcfm_membership_page() );
     } elseif( $stripe_plan_id ) {
     	// Stripe Plan Data Fetching
     	$plan_data = get_post_meta( $membership_id, 'stripe_plan_data', true );
@@ -1231,7 +1314,6 @@ class WCFMvm_Frontend {
 			}
 			$button_label = __( 'Subscribe', 'wc-multivendor-membership' );
 			
-    	$notify_url = add_query_arg( 'wcfmvm_process_ipn', 'stripe_subs_ipn', get_wcfm_membership_page() );
     } else {
     	echo '<div class="wcfm-message wcfm-warning" tabindex="-1" style="display:block;"><span class="wcicon-status-pending"></span>';
     	_e( 'Stripe Plan ID missing.', 'wc-multivendor-membership' );
@@ -1263,6 +1345,10 @@ class WCFMvm_Frontend {
 				$notify_url = add_query_arg( array( 'wcfmvm_process_ipn' => 'stripe_sca_ipn',
 																				'ref_id' => $ref_id
 																			), get_wcfm_membership_page() );
+				// Stripe takes whole cents - membership tax applied to a value already
+				// converted to cents easily yields a fraction (19.99 + 20% => 2398.8),
+				// which Stripe rejects for every non zero decimal currency.
+				$taxed_price_in_cents = (int) round( wcfmvm_membership_tax_price( $price_in_cents ) );
 				if(!apply_filters('wcfm_stripe_api_2023_or_later', false)){
 					$opts = array(
 						'payment_method_types'       => array( 'card' ),
@@ -1272,7 +1358,7 @@ class WCFMvm_Frontend {
 							array(
 								'name'        => $title,
 								'description' => number_format( $payment_amount, 2 ) . ' ' . $payment_currency,
-								'amount'      => wcfmvm_membership_tax_price($price_in_cents),
+								'amount'      => $taxed_price_in_cents,
 								'currency'    => $payment_currency,
 								'quantity'    => 1,
 							),
@@ -1294,7 +1380,7 @@ class WCFMvm_Frontend {
 										'name' => $title,
 										'description' => number_format( $payment_amount, 2 ) . ' ' . $payment_currency,
 									),
-									'unit_amount_decimal' => wcfmvm_membership_tax_price($price_in_cents),
+									'unit_amount' => $taxed_price_in_cents,
 								),
 								'quantity'    => 1,
 							),

@@ -278,10 +278,20 @@ class WCFMvm {
 		if ( !get_option("wcfmvm_page_install") || !get_option("wcfmvm_installed") ) {
 			require_once ( $WCFMvm->plugin_path . 'helpers/class-wcfmvm-install.php' );
 			$WCFMvm_Install = new WCFMvm_Install();
-			
+
 			update_option('wcfmvm_installed', 1);
-		} 
-		
+		}
+
+		// Schema updates on installs that predate the current version. Updating the
+		// plugin does not fire the activation hook and the tables are only created once
+		// (guarded by `wcfmvm_table_install`), so column changes have to be applied here.
+		if ( get_option( 'wcfmvm_db_version' ) != $WCFMvm->version ) {
+			require_once ( $WCFMvm->plugin_path . 'helpers/class-wcfmvm-install.php' );
+			WCFMvm_Install::wcfmvm_update_tables();
+
+			update_option( 'wcfmvm_db_version', $WCFMvm->version );
+		}
+
 		// Restore Membership Pages
 		if( WCFMvm_Dependencies::woocommerce_plugin_active_check() && WCFMvm_Dependencies::wcfm_plugin_active_check() ) {
 			$array_pages = get_option( 'wcfm_page_options', array() );
@@ -489,17 +499,14 @@ class WCFMvm {
 				exit;
 			}
 
-			// Listen and handle Stripe Buy Now IPN
-			if ( $wcfmvm_process_ipn == 'stripe_ipn' ) {
-				wcfmvm_create_log( "Stripe IPN Process Start -->" );
-				include( $this->plugin_path . 'ipn/wcfmvm-handle-stripe-ipn.php' );
+			// The pre-SCA Stripe "Buy Now" / subscription IPN handlers trusted a
+			// request-controlled member id (`custom`) and could overwrite an arbitrary
+			// user's role. The live Stripe flow uses the SCA handlers below, so these
+			// legacy endpoints are retired and always rejected.
+			if ( in_array( $wcfmvm_process_ipn, array( 'stripe_ipn', 'stripe_subs_ipn' ), true ) ) {
+				wcfmvm_create_log( "Rejected request to retired Stripe IPN endpoint: " . $wcfmvm_process_ipn );
+				status_header( 410 );
 				exit;
-			}
-	
-			// Listen and handle Stripe Subscription IPN
-			if ( $wcfmvm_process_ipn == 'stripe_subs_ipn' ) {
-					include( $this->plugin_path . 'ipn/wcfmvm-handle-stripe-subs-ipn.php' );
-					exit;
 			}
 			
 			// Listen and handle Stripe SCA One Time Pay IPN
@@ -511,6 +518,13 @@ class WCFMvm {
 			// Listen and handle Stripe SCA Subscription IPN
 			if ( $wcfmvm_process_ipn == 'stripe_sca_subs_ipn' ) {
 					include( $this->plugin_path . 'ipn/wcfmvm-handle-stripe-sca-subs-ipn.php' );
+					exit;
+			}
+
+			// Listen and handle Stripe webhook events (signed server notifications:
+			// renewals, cancellations, and completed checkouts the browser return missed)
+			if ( $wcfmvm_process_ipn == 'stripe_webhook' ) {
+					include( $this->plugin_path . 'ipn/wcfmvm-handle-stripe-webhook-ipn.php' );
 					exit;
 			}
 			
@@ -527,8 +541,11 @@ class WCFMvm {
 	
 	function register_vendor( $member_id ) {
 		global $WCFM, $WCFMvm, $wpdb;
-		
+
 		$has_error = false;
+		// IPN handlers pass the member id straight from the gateway payload, so normalise it
+		// here - the membership user list is matched on it with a strict comparison.
+		$member_id = absint( $member_id );
 		$wcfm_membership = get_user_meta( $member_id, 'temp_wcfm_membership', true );
 		$shop_name = get_user_meta( $member_id, 'store_name', true );
 			
@@ -975,10 +992,14 @@ class WCFMvm {
 					
 					// Restricted Membership
 					if( $is_restricted == 'yes' ) {
-						$wcfm_restricted_memberships = get_user_meta( $member_id, 'wcfm_restricted_memberships', true ); 
+						$wcfm_restricted_memberships = get_user_meta( $member_id, 'wcfm_restricted_memberships', true );
 						if( !$wcfm_restricted_memberships ) $wcfm_restricted_memberships = array();
-						$wcfm_restricted_memberships[] = $wcfm_membership;
-						update_user_meta( $member_id, 'wcfm_restricted_memberships', $wcfm_restricted_memberships );
+						// register_vendor() runs again on every renewal an auto renewing gateway
+						// reports, so append only once per membership.
+						if( !in_array( $wcfm_membership, $wcfm_restricted_memberships, true ) ) {
+							$wcfm_restricted_memberships[] = $wcfm_membership;
+							update_user_meta( $member_id, 'wcfm_restricted_memberships', $wcfm_restricted_memberships );
+						}
 					}
 					
 					// Renewal Current Time
@@ -1001,6 +1022,11 @@ class WCFMvm {
 					}
 					
 					if( ( $is_free == 'no' ) && ( $subscription_type != 'one_time' ) ) {
+						// A recurring plan saved without a trial period and without a billing
+						// period leaves nothing to schedule, so neither branch below assigns a
+						// time. Default it to a falsy value: the reminder and expiry scheduler
+						// already skip members with no next schedule.
+						$next_payment_time = 0;
 						if( !empty( $trial_period ) ) {
 							$next_payment_time = strtotime( '+' . $trial_period . ' ' . $period_options[$trial_period_type], $current_time );
 							update_user_meta( $member_id, 'wcfm_membership_billing_cycle', 0 );
@@ -1023,8 +1049,13 @@ class WCFMvm {
 						
 					// Membership user update
 					$membership_users = (array) get_post_meta( $wcfm_membership, 'membership_users', true );
-					$membership_users[] = $member_id;
-					update_post_meta( $wcfm_membership, 'membership_users', $membership_users );
+					// Renewals call register_vendor() again, so the member must be listed once
+					// only. The de-dupe pass in the memberships manage controller drops invalid
+					// entries, not repeated ones.
+					if( !in_array( $member_id, $membership_users, true ) ) {
+						$membership_users[] = $member_id;
+						update_post_meta( $wcfm_membership, 'membership_users', $membership_users );
+					}
 						
 					// Group user update
 					if( WCFM_Dependencies::wcfmgs_plugin_active_check() && !$is_membership_renewal ) {
@@ -1376,7 +1407,11 @@ class WCFMvm {
 			if( $transaction_status != 'Cancelled' ) {
 				update_user_meta( $member_id, 'wcfm_transaction_id', $transaction_id );
 				update_user_meta( $member_id, 'wcfm_subscription_status', 'active' );
-				update_user_meta( $member_id, 'wcfm_membership_paymode', $paymode );
+				// The member's pay mode is the payment METHOD - a ledger row written for
+				// the recurring profile ('stripe_subs') must not flip it to the recurring
+				// variant, that key maps to nothing in get_wcfm_membership_payment_methods().
+				$member_recurring_paymodes = get_wcfm_membership_recurring_paymodes();
+				update_user_meta( $member_id, 'wcfm_membership_paymode', ( isset( $member_recurring_paymodes[ $paymode ] ) ? $member_recurring_paymodes[ $paymode ] : $paymode ) );
 				delete_user_meta( $member_id, 'wcfm_membership_application_status' );
 			} else {
 				update_user_meta( $member_id, 'wcfm_subscription_status', 'cancelled' );
@@ -1388,26 +1423,72 @@ class WCFMvm {
 				update_user_meta( $member_id, 'wcfm_subscription_status', 'active' );
 			} else {
 				$subscription_type = isset( $subscription['subscription_type'] ) ? $subscription['subscription_type'] : 'one_time';
-				
-				if( ( $paymode == 'paypal' || $paymode == 'stripe' || $paymode == 'bank_transfer' ) && ( $subscription_type == 'one_time' ) ) {
+
+				// A pay mode is either a payment method taking the initial payment
+				// ('stripe'), or that method's recurring profile ('stripe_subs'). Both
+				// lists are filterable, so a gateway added through the
+				// `wcfm_membership_payment_methods` filter records its subscription the
+				// same way the bundled ones do - see get_wcfm_membership_recurring_paymodes().
+				$payment_methods    = get_wcfm_membership_payment_methods();
+				$recurring_paymodes = get_wcfm_membership_recurring_paymodes();
+				$is_initial_paymode = isset( $payment_methods[ $paymode ] );
+				$is_recurring_paymode = isset( $recurring_paymodes[ $paymode ] );
+
+				// A plan sold through WooCommerce checkout is charged by WooCommerce, so
+				// the pay mode recorded for it is a WooCommerce gateway id ('razorpay',
+				// 'ppcp-gateway', 'cod', ...), which is not a membership payment method and
+				// matches neither list above. Those rows were stored with no amount and no
+				// interval at all. WooCommerce - and WooCommerce Subscriptions, when the
+				// plan is backed by a subscription product - owns the billing profile in
+				// that flow, so the ledger records the plan's own terms and never claims
+				// the profile id.
+				$subscription_pay_mode = isset( $subscription['subscription_pay_mode'] ) ? $subscription['subscription_pay_mode'] : 'by_wcfm';
+				$is_wc_checkout = ( 'by_wc' === $subscription_pay_mode ) && !$is_initial_paymode && !$is_recurring_paymode;
+
+				/**
+				 * Transaction types that record a RENEWAL charge of an existing profile.
+				 *
+				 * A renewal row carries the per-cycle transaction id (a payment or invoice
+				 * id), never the profile id, so it must not overwrite
+				 * `wcfm_subscription_profile_id` - that meta identifies the profile at the
+				 * gateway and is what a later cancellation is issued against.
+				 *
+				 * @param array $renewal_types Transaction type keys.
+				 */
+				$is_renewal_event = in_array( $transaction_type, apply_filters( 'wcfmvm_renewal_transaction_types', array( 'subscription_renewal' ) ), true );
+
+				$trial_period_type   = isset( $subscription['trial_period_type'] ) ? $subscription['trial_period_type'] : 'M';
+				$billing_period_type = isset( $subscription['billing_period_type'] ) ? $subscription['billing_period_type'] : 'M';
+
+				if( ( $is_initial_paymode || $is_wc_checkout ) && ( $subscription_type == 'one_time' ) ) {
 					$subscription_amt = isset( $subscription['one_time_amt'] ) ? floatval($subscription['one_time_amt']) : '1';
 					$subscription_interval = 0;
-				} elseif( ( $paymode == 'paypal' || $paymode == 'stripe' || $paymode == 'bank_transfer' ) && ( $subscription_type == 'recurring' ) ) {
-					$subscription_amt = isset( $subscription['trial_amt'] ) ? $subscription['trial_amt'] : '';
-					$subscription_interval = isset( $subscription['trial_period'] ) ? $subscription['trial_period'] : '';
-					$subscription_interval .= ' ' . $period_options[$subscription['trial_period_type']];
-				} elseif( ( $paymode == 'paypal_subs' || $paymode == 'stripe_subs' || $paymode == 'bank_transfer_subs' ) && ( $subscription_type == 'recurring' ) ) {
+				} elseif( $is_wc_checkout && ( $subscription_type == 'recurring' ) ) {
+					// Every WooCommerce order for a recurring plan - the first one and each
+					// renewal WooCommerce Subscriptions raises - collects the recurring price.
 					$subscription_amt = isset( $subscription['billing_amt'] ) ? floatval($subscription['billing_amt']) : '1';
 					$subscription_interval = isset( $subscription['billing_period'] ) ? $subscription['billing_period'] : '';
-					$subscription_interval .= ' ' . $period_options[$subscription['billing_period_type']];
-					
-					update_user_meta( $member_id, 'wcfm_subscription_profile_id', $transaction_id );
-					if( $transaction_status != 'Completed' ) {
-						update_user_meta( $member_id, 'wcfm_subscription_status', 'blocked' );
+					$subscription_interval .= ' ' . $period_options[$billing_period_type];
+				} elseif( $is_initial_paymode && ( $subscription_type == 'recurring' ) ) {
+					$subscription_amt = isset( $subscription['trial_amt'] ) ? $subscription['trial_amt'] : '';
+					$subscription_interval = isset( $subscription['trial_period'] ) ? $subscription['trial_period'] : '';
+					$subscription_interval .= ' ' . $period_options[$trial_period_type];
+				} elseif( $is_recurring_paymode && ( $subscription_type == 'recurring' ) ) {
+					$subscription_amt = isset( $subscription['billing_amt'] ) ? floatval($subscription['billing_amt']) : '1';
+					$subscription_interval = isset( $subscription['billing_period'] ) ? $subscription['billing_period'] : '';
+					$subscription_interval .= ' ' . $period_options[$billing_period_type];
+
+					if( !$is_renewal_event ) {
+						update_user_meta( $member_id, 'wcfm_subscription_profile_id', $transaction_id );
+						if( $transaction_status != 'Completed' ) {
+							update_user_meta( $member_id, 'wcfm_subscription_status', 'blocked' );
+						}
 					}
 				}
 			}
-			$subscription_amt = absint($subscription_amt);
+			// Keep the fractional part - absint() here silently dropped the paise / cents
+			// of every subscription amount.
+			$subscription_amt = wc_format_decimal( $subscription_amt ? $subscription_amt : 0, wc_get_price_decimals() );
 			
 			// Update quick info in User Profile
 			update_user_meta( $member_id, 'wcfm_subscription_type', $subscription_type );
@@ -1416,10 +1497,10 @@ class WCFMvm {
 			$wcfm_membership_subscription = $wpdb->prepare("INSERT into {$wpdb->prefix}wcfm_membership_subscription 
 																			(`vendor_id`, `membership_id`, `subscription_type`, `subscription_amt`, `subscription_interval`, `event`, `pay_mode`, `transaction_id`, `transaction_type`, `transaction_status`, `transaction_details`)
 																			VALUES
-																			(%d, %d, %s, %d, %s, %s, %s, %s, %s, %s, %s)
+																			(%d, %d, %s, %f, %s, %s, %s, %s, %s, %s, %s)
 																			ON DUPLICATE KEY UPDATE
 																			`subscription_type`     = %s,
-																			`subscription_amt`      = %d,
+																			`subscription_amt`      = %f,
 																			`subscription_interval` = %s,
 																			`event`                 = %s,
 																			`pay_mode`              = %s,
@@ -1439,6 +1520,195 @@ class WCFMvm {
 		}
 	}
 	
+	/**
+	 * Renew an ACTIVE membership after a gateway confirmed a recurring charge.
+	 *
+	 * register_vendor() is the *registration* path: it activates the plan held in
+	 * `temp_wcfm_membership`, resets the billing cycle to the start of a new term and
+	 * deletes the temp meta - which is why it must not be reused for automatic
+	 * renewals. This is the *renewal* path: it moves the member one cycle forward on
+	 * the plan they already hold, so the subscription still ends after the plan's
+	 * billing period count.
+	 *
+	 * Called by the PayPal IPN handler (recurring `subscr_payment`) and the Stripe
+	 * webhook handler (`invoice.payment_succeeded`), and available to any third party
+	 * gateway addon.
+	 *
+	 * @param int   $member_id Member (user) ID.
+	 * @param array $args {
+	 *     @type string $paymode             Payment method key, e.g. 'paypal'. Required.
+	 *     @type string $transaction_id      Gateway id of THIS charge (payment / invoice id,
+	 *                                       never the profile id). Required.
+	 *     @type string $transaction_details Raw gateway payload for the ledger.
+	 *     @type int    $next_schedule       Authoritative next charge timestamp reported by
+	 *                                       the gateway. Computed locally when absent.
+	 *     @type int    $membership_id       Plan the gateway believes it charged for; the
+	 *                                       renewal is refused when it does not match the
+	 *                                       member's current plan.
+	 * }
+	 * @return bool Whether the renewal was applied.
+	 */
+	function wcfmvm_membership_renewal( $member_id, $args = array() ) {
+		global $WCFM, $WCFMvm, $wpdb;
+
+		$member_id = absint( $member_id );
+		$args = wp_parse_args( $args, array(
+			'paymode'             => '',
+			'transaction_id'      => '',
+			'transaction_details' => '',
+			'next_schedule'       => 0,
+			'membership_id'       => 0,
+		) );
+
+		if( !$member_id || !$args['paymode'] || !$args['transaction_id'] ) {
+			wcfmvm_create_log( 'Membership renewal refused: member, paymode and transaction id are required.' );
+			return false;
+		}
+
+		$wcfm_membership = absint( get_user_meta( $member_id, 'wcfm_membership', true ) );
+		if( !$wcfm_membership || !wcfm_is_valid_membership( $wcfm_membership ) ) {
+			// Expired or cancelled site side - the gateway profile should have been
+			// cancelled with it. Never resurrect a membership from a payment alone.
+			wcfmvm_create_log( 'Membership renewal refused: member ' . $member_id . ' holds no valid membership. Transaction ' . $args['transaction_id'] . ' (' . $args['paymode'] . ') needs manual attention.' );
+			return false;
+		}
+
+		if( $args['membership_id'] && ( absint( $args['membership_id'] ) !== $wcfm_membership ) ) {
+			wcfmvm_create_log( 'Membership renewal refused: transaction ' . $args['transaction_id'] . ' is for plan ' . absint( $args['membership_id'] ) . ' but member ' . $member_id . ' is on plan ' . $wcfm_membership . '.' );
+			return false;
+		}
+
+		$subscription = (array) get_post_meta( $wcfm_membership, 'subscription', true );
+		$is_free = isset( $subscription['is_free'] ) ? 'yes' : 'no';
+		$subscription_type = isset( $subscription['subscription_type'] ) ? $subscription['subscription_type'] : 'one_time';
+		if( ( $is_free == 'yes' ) || ( $subscription_type != 'recurring' ) ) {
+			wcfmvm_create_log( 'Membership renewal refused: plan ' . $wcfm_membership . ' is not a recurring paid plan.' );
+			return false;
+		}
+
+		$billing_period      = isset( $subscription['billing_period'] ) ? $subscription['billing_period'] : '1';
+		$billing_period_type = isset( $subscription['billing_period_type'] ) ? $subscription['billing_period_type'] : 'M';
+		$period_options      = array( 'D' => 'days', 'M' => 'months', 'Y' => 'years' );
+
+		$current_time  = current_time( 'timestamp' );
+		$next_schedule = absint( get_user_meta( $member_id, 'wcfm_membership_next_schedule', true ) );
+		$billing_cycle = absint( get_user_meta( $member_id, 'wcfm_membership_billing_cycle', true ) );
+
+		// A next schedule clearly in the future means this period was already accounted
+		// for - the scheduler advanced past its grace window before the gateway
+		// confirmed, or the charge is the first one of a profile that registration
+		// already scheduled. Advancing again would hand out a free period, so only
+		// align with the gateway's authoritative date.
+		$already_scheduled = ( $next_schedule > ( $current_time + HOUR_IN_SECONDS ) );
+
+		if( !$already_scheduled ) {
+			$billing_cycle = max( 1, $billing_cycle + 1 );
+			update_user_meta( $member_id, 'wcfm_membership_billing_cycle', $billing_cycle );
+			update_user_meta( $member_id, 'wcfm_membership_subscribe_on', $current_time );
+
+			if( !$args['next_schedule'] ) {
+				// Keep the original billing anchor while it still yields a future date,
+				// fall back to one period from now for a charge that arrived very late.
+				$anchored = $next_schedule ? strtotime( '+' . $billing_period . ' ' . $period_options[$billing_period_type], $next_schedule ) : 0;
+				$args['next_schedule'] = ( $anchored > $current_time ) ? $anchored : strtotime( '+' . $billing_period . ' ' . $period_options[$billing_period_type], $current_time );
+			}
+		}
+
+		if( $args['next_schedule'] ) {
+			update_user_meta( $member_id, 'wcfm_membership_next_schedule', absint( $args['next_schedule'] ) );
+		}
+
+		update_user_meta( $member_id, 'wcfm_subscription_status', 'active' );
+		update_user_meta( $member_id, 'wcfm_membership_paymode', $args['paymode'] );
+
+		// Ledger row for this cycle - the recurring pay mode with the per cycle
+		// transaction id. 'subscription_renewal' keeps store_subscription_data() from
+		// overwriting the profile id with it.
+		$recurring_paymodes = get_wcfm_membership_recurring_paymodes();
+		$recurring_paymode  = array_search( $args['paymode'], $recurring_paymodes, true );
+		if( !$recurring_paymode ) $recurring_paymode = $args['paymode'] . '_subs';
+		$this->store_subscription_data( $member_id, $recurring_paymode, $args['transaction_id'], 'subscription_renewal', 'Completed', $args['transaction_details'] );
+
+		wcfmvm_create_log( 'Membership renewed: member ' . $member_id . ' plan ' . $wcfm_membership . ' cycle ' . $billing_cycle . ' via ' . $args['paymode'] . ' txn ' . $args['transaction_id'] . ( $already_scheduled ? ' (aligned, cycle not advanced)' : '' ) );
+
+		// The silent path is an alignment, not a new period - the member was already
+		// carried forward, so notifying them again would duplicate.
+		if( !$already_scheduled ) {
+			$this->wcfmvm_membership_renewal_notifications( $member_id, $wcfm_membership );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Vendor and admin notifications for a completed automatic renewal.
+	 *
+	 * Uses the very same option driven templates the manual renewal path in
+	 * register_vendor() uses, so a site's customised wording applies to both.
+	 */
+	function wcfmvm_membership_renewal_notifications( $member_id, $wcfm_membership ) {
+		global $WCFM;
+
+		$member_user = new WP_User( $member_id );
+		if( !$member_user->exists() ) return;
+
+		$wcfm_plan_details = wcfm_membership_features_table( $wcfm_membership );
+
+		if( !defined( 'DOING_WCFM_EMAIL' ) )
+			define( 'DOING_WCFM_EMAIL', true );
+
+		// Switch language context…
+		if( apply_filters( 'wcfm_allow_wpml_email_translation', true ) ) {
+			do_action( 'wpml_switch_language_for_email', $member_user->user_email );
+		}
+
+		$renewal_notication_subject = wcfm_get_option( 'wcfm_membership_renewal_notication_subject', '[{site_name}] Membership Subscription Successfully Renewed' );
+		$renewal_notication_content = wcfm_get_option( 'wcfm_membership_renewal_notication_content', '' );
+		if( !$renewal_notication_content ) {
+			$renewal_notication_content = "Hi {first_name},
+																		<br /><br />
+																		You have successfully renewed membership plan <b>{membership_plan}</b>.
+																		<br /><br />
+																		{plan_details}
+																		<br /><br />
+																		Kindly follow the below the link to visit your dashboard.
+																		<br /><br />
+																		Dashboard: {dashboard_url}
+																		<br /><br />
+																		Thank You";
+		}
+
+		$subject = str_replace( '{site_name}', get_bloginfo( 'name' ), $renewal_notication_subject );
+		$subject = apply_filters( 'wcfm_email_subject_wrapper', $subject );
+		$message = str_replace( '{dashboard_url}', '<a href="' . esc_url(get_wcfm_url()) . '">' . __( 'Visit now ...', 'wc-multivendor-membership' ) . '</a>', $renewal_notication_content );
+		$message = str_replace( '{first_name}', $member_user->first_name, $message );
+		$message = str_replace( '{site_name}', get_bloginfo( 'name' ), $message );
+		$message = str_replace( '{plan_details}', $wcfm_plan_details, $message );
+		$message = str_replace( '{membership_plan}', get_the_title( $wcfm_membership ), $message );
+		$message = apply_filters( 'wcfm_email_content_wrapper', $message, apply_filters( 'wcfm_membership_renewal_header', __( 'Membership Subscription Renewed', 'wc-multivendor-membership' ) ) );
+
+		if( apply_filters( 'wcfm_is_allow_vendor_welcome_email', true, $member_id, true, true ) ) {
+			wp_mail( $member_user->user_email, $subject, $message );
+		}
+
+		// switch language back
+		if( apply_filters( 'wcfm_allow_wpml_email_translation', true ) ) {
+			do_action( 'wpml_restore_language_from_email' );
+		}
+
+		// Admin Desktop Notification
+		if( apply_filters( 'wcfm_is_allow_admin_membership_renewal_notification', true ) ) {
+			$wcfm_messages = sprintf( __( '<b>%s</b> membership plan (<strong>%s</strong>) subscription successfully renewed.', 'wc-multivendor-membership' ), $member_user->first_name, get_the_title( $wcfm_membership ) );
+			$WCFM->wcfm_notification->wcfm_send_direct_message( -2, 0, 1, 0, $wcfm_messages, 'membership', false );
+		}
+
+		// Vendor Desktop Notification
+		if( apply_filters( 'wcfm_is_allow_vendor_membership_renewal_notification', true ) ) {
+			$wcfm_messages = sprintf( __( 'Your membership plan (<strong>%s</strong>) subscription successfully renewed.', 'wc-multivendor-membership' ), get_the_title( $wcfm_membership ) );
+			$WCFM->wcfm_notification->wcfm_send_direct_message( -1, $member_id, 1, 0, $wcfm_messages, 'membership', false );
+		}
+	}
+
 	/**
 	 * WC Checkout membership purchase registration process on Order complete
 	 */
@@ -1979,19 +2249,42 @@ class WCFMvm {
 	 */
 	function wcfmvm_recurring_subscription_profile_cancel( $member_id, $paymode ) {
 		global $WCFM, $WCFMvm;
-		
+
 		if( !$paymode ) return;
-		
-		$subscription_id = get_user_meta( $member_id, 'wcfm_transaction_id', true );
+
+		// Membership cancel / expire passes the pay mode as it is stored on the member -
+		// the plain method key ('paypal'), never the recurring variant this switch is
+		// keyed on. Without this normalisation no branch ever matched, so the profile
+		// at the gateway survived every site side cancellation and kept charging.
+		$recurring_paymodes = get_wcfm_membership_recurring_paymodes();
+		if( !isset( $recurring_paymodes[ $paymode ] ) ) {
+			$recurring_paymode = array_search( $paymode, $recurring_paymodes, true );
+			if( !$recurring_paymode ) $recurring_paymode = $paymode . '_subs';
+			$paymode = $recurring_paymode;
+		}
+
+		// The profile id is what the gateway knows the subscription by. It used to be
+		// read from `wcfm_transaction_id`, which every ledger write overwrites with the
+		// latest payment id - a cancel issued with a payment id fails at the gateway.
+		$subscription_id = get_user_meta( $member_id, 'wcfm_subscription_profile_id', true );
+		if( !$subscription_id ) {
+			$gateway_profile_metas = array( 'paypal_subs' => 'wcfm_paypal_subscription_id', 'stripe_subs' => 'wcfm_stripe_subscription_id' );
+			if( isset( $gateway_profile_metas[ $paymode ] ) ) {
+				$subscription_id = get_user_meta( $member_id, $gateway_profile_metas[ $paymode ], true );
+			}
+		}
+		if( !$subscription_id ) {
+			$subscription_id = get_user_meta( $member_id, 'wcfm_transaction_id', true );
+		}
 		if( !$subscription_id ) return;
-		
+
 		$wcfm_membership_options = get_option( 'wcfm_membership_options', array() );
 		$membership_payment_settings = array();
 		if( isset( $wcfm_membership_options['membership_payment_settings'] ) ) $membership_payment_settings = $wcfm_membership_options['membership_payment_settings'];
 		$payment_sandbox = isset( $membership_payment_settings['paypal_sandbox'] ) ? 'yes' : 'no';
-		
-		
-		
+
+
+
 		switch( $paymode ) {
 			case 'paypal_subs':
 				$paypal_settings  = get_option( 'woocommerce_paypal_settings' );
@@ -2050,33 +2343,108 @@ class WCFMvm {
 				}
 				
 				if( $secret_key ) {
-					\Stripe\Stripe::setApiKey( $secret_key );
-					$recurring_subscription = \Stripe\Subscription::retrieve( $subscription_id );
-					$recurring_subscription->cancel();
-					
+					// The subscription may already be gone at Stripe - cancelled from the
+					// Stripe dashboard, or this cancel was triggered by Stripe's own
+					// customer.subscription.deleted webhook. That must not abort the
+					// membership cancellation around this call.
+					try {
+						\Stripe\Stripe::setApiKey( $secret_key );
+						$recurring_subscription = \Stripe\Subscription::retrieve( $subscription_id );
+						$recurring_subscription->cancel();
+
+						wcfm_log( "Stripe Recurring Subscription Cancelled:: " . $member_id . ' => ' . $subscription_id );
+					} catch ( Exception $e ) {
+						wcfm_log( "Stripe Recurring Subscription Cancel Error:: " . $member_id . ' => ' . $subscription_id . ' => ' . $e->getMessage() );
+					}
+
 					delete_user_meta( $member_id, 'wcfm_stripe_subscription_id' );
-					
-					wcfm_log( "Stripe Recurring Subscription Cancelled:: " . $member_id . ' => ' . $subscription_id );
 				}
-				
+
 			break;
 		}
-		
+
 		delete_user_meta( $member_id, 'wcfm_transaction_id' );
+		// The profile is dead either way - a later re-subscription stores a fresh one.
+		delete_user_meta( $member_id, 'wcfm_subscription_profile_id' );
 	}
 	
 	/**
 	 * WCFMvm scheduler check for sending recurring reminder email
 	 */
+	/**
+	 * Drop processed gateway transaction claims that are past the retention window
+	 *
+	 * Every processed transaction leaves a claim behind (see
+	 * wcfmvm_paypal_ipn_handler::claim_transaction()) and a gateway only ever retries
+	 * an IPN for a few days, so keeping the claims forever grows the options table for
+	 * no benefit. Legacy claims stored before the claim carried a timestamp are stamped
+	 * with the current time and moved out of the autoload set, so they age out too.
+	 */
+	function wcfmvm_prune_processed_transactions() {
+		global $wpdb;
+
+		/**
+		 * How long a processed transaction claim is kept.
+		 *
+		 * Has to outlive every retry and dispute notification the gateway may send for
+		 * the same transaction id.
+		 *
+		 * @param int $retention Retention window in seconds.
+		 */
+		$retention = absint( apply_filters( 'wcfmvm_processed_transaction_retention', 6 * MONTH_IN_SECONDS ) );
+		if ( !$retention ) return;
+
+		/**
+		 * How many claims are pruned per scheduler run.
+		 *
+		 * @param int $batch Number of claims.
+		 */
+		$batch = absint( apply_filters( 'wcfmvm_processed_transaction_prune_batch', 500 ) );
+		if ( !$batch ) return;
+
+		/**
+		 * Gateways whose processed transaction claims are pruned.
+		 *
+		 * A gateway addon claiming through wcfmvm_claim_transaction() should append
+		 * its slug here so its claims age out as well.
+		 *
+		 * @param array $gateways Gateway slugs.
+		 */
+		$claim_gateways = apply_filters( 'wcfmvm_processed_transaction_gateways', array( 'paypal', 'stripe' ) );
+
+		foreach ( $claim_gateways as $claim_gateway ) {
+			$claim_pattern = $wpdb->esc_like( wcfmvm_transaction_claim_key( $claim_gateway, '' ) ) . '%';
+
+			// Claims written before they carried a timestamp - stamp them with the current
+			// time so they age out from here on, and stop them autoloading on every request.
+			$legacy_claims = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value NOT REGEXP '^[0-9]{10,}$' LIMIT %d", $claim_pattern, $batch ) );
+			foreach ( $legacy_claims as $legacy_claim ) {
+				update_option( $legacy_claim, time(), 'no' );
+			}
+
+			$expired_claims = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value + 0 < %d LIMIT %d", $claim_pattern, ( time() - $retention ), $batch ) );
+			foreach ( $expired_claims as $expired_claim ) {
+				delete_option( $expired_claim );
+			}
+
+			if ( !empty( $expired_claims ) || !empty( $legacy_claims ) ) {
+				wcfmvm_create_log( 'Processed ' . $claim_gateway . ' transaction claims pruned: ' . count( $expired_claims ) . ' expired, ' . count( $legacy_claims ) . ' stamped.' );
+			}
+		}
+	}
+
 	function wcfmvm_membership_scheduler_check() {
 		global $WCFM, $WCFMvm, $wpdb;
-		
+
 		// Update Schedule Execution TIme
 		$data = get_option( 'wcfmvm_membership_scheduler', array() );
 		$data['updated'] = time();
 		update_option( 'wcfmvm_membership_scheduler', $data, false );
-		
-		
+
+		// Housekeeping for processed gateway transaction claims
+		$this->wcfmvm_prune_processed_transactions();
+
+
 		$args = array(
 						'role__in'     => apply_filters( 'wcfm_allwoed_user_roles', array( 'dc_vendor', 'vendor', 'seller', 'wcfm_vendor', 'wc_product_vendors_admin_vendor' ) ),
 					 ); 
@@ -2113,7 +2481,8 @@ class WCFMvm {
 					
 					// Bug fixing update
 					update_user_meta( $member->ID, 'wcfm_membership_billing_period', $billing_period_count );
-		
+
+
 					if( $next_schedule ) {
 						$send_reminder = false;
 						$renewal_reminder = false;
@@ -2177,15 +2546,62 @@ class WCFMvm {
 							$reminder_day = __( 'in', 'wc-multivendor-membership' ) . ' ' . $second_remind . ' ' . __( 'Days', 'wc-multivendor-membership' );
 						} elseif( (int) $interval <= 0 ) { // Expiry Day Remider
 							if( $member_billing_cycle < $member_billing_period ) {
+
+								/**
+								 * Days past the due date the scheduler waits for the member's gateway
+								 * to confirm the charge before falling back to the optimistic advance.
+								 *
+								 * Defaults to 3 days for members with a recurring profile at their
+								 * gateway (`wcfm_subscription_profile_id`) - their renewals arrive
+								 * through the gateway's notification and are applied by
+								 * wcfmvm_membership_renewal(), so advancing here as well would count
+								 * the same period twice. Members without a profile (offline methods)
+								 * keep the immediate advance.
+								 *
+								 * @param int    $grace_days      Days to wait. 0 disables the wait.
+								 * @param int    $member_id       Member (user) ID.
+								 * @param string $paymode         Member's membership pay mode.
+								 * @param int    $wcfm_membership Membership plan (post) ID.
+								 */
+								$renewal_grace_days = absint( apply_filters( 'wcfmvm_gateway_renewal_grace_days', ( get_user_meta( $member->ID, 'wcfm_subscription_profile_id', true ) ? 3 : 0 ), $member->ID, $paymode, $wcfm_membership ) );
+
+								if( $renewal_grace_days && ( (int) $interval > -$renewal_grace_days ) ) {
+									// Within the grace window: the gateway notification is expected to
+									// arrive and advance this member, so neither advance nor remind.
+									wcfmvm_create_log( 'Membership renewal awaited from gateway: member ' . $member->ID . ' due ' . $renewal_date . ' (' . $paymode . ', grace ' . $renewal_grace_days . 'd).' );
+									continue;
+								}
+
 								$send_reminder = true;
 								$reminder_day = __( 'Today', 'wc-multivendor-membership' );
-							
-								$member_billing_cycle++;
-								update_user_meta( $member->ID, 'wcfm_membership_billing_cycle', $member_billing_cycle );
-								
-								// Set new next schedule
-								$next_renewal_time = strtotime( '+' . $billing_period . ' ' . $period_options[$billing_period_type], $current_time );
-								update_user_meta( $member->ID, 'wcfm_membership_next_schedule', $next_renewal_time );
+
+								/**
+								 * Whether the scheduler may move the member on to the next billing cycle.
+								 *
+								 * The due date arriving is taken as proof that the gateway charged: the
+								 * billing cycle is counted up and the next schedule is pushed forward a
+								 * billing period, without any payment confirmation. That is the only thing
+								 * keeping a membership alive today, so it stays the default.
+								 *
+								 * A gateway that reports authoritative dates from its own webhook should
+								 * return false here for its own pay mode and set
+								 * `wcfm_membership_billing_cycle` and `wcfm_membership_next_schedule`
+								 * itself once the charge is confirmed. Expiry at the end of the plan's
+								 * billing period count is not affected by this filter.
+								 *
+								 * @param bool   $is_allow      Whether to advance the cycle locally.
+								 * @param int    $member_id     Member (user) ID.
+								 * @param string $paymode       Member's membership pay mode.
+								 * @param int    $wcfm_membership Membership plan (post) ID.
+								 */
+								if( apply_filters( 'wcfmvm_is_allow_optimistic_renewal', true, $member->ID, $paymode, $wcfm_membership ) ) {
+									$member_billing_cycle++;
+									update_user_meta( $member->ID, 'wcfm_membership_billing_cycle', $member_billing_cycle );
+
+									// Set new next schedule
+									$next_renewal_time = strtotime( '+' . $billing_period . ' ' . $period_options[$billing_period_type], $current_time );
+									update_user_meta( $member->ID, 'wcfm_membership_next_schedule', $next_renewal_time );
+								}
 							} else {
 								wcfm_log( "Membership Expiry by Time :: " . $member->ID . " <=> " . $interval . " <=> " . $member_billing_cycle . " <=> " . $member_billing_period );
 								$WCFMvm->wcfmvm_vendor_membership_expire( $member->ID, $wcfm_membership );

@@ -24,27 +24,63 @@ class wcfmvm_paypal_ipn_handler {
 		$this->sandbox_mode = isset( $membership_payment_settings['paypal_sandbox'] ) ? true : false;
 	}
 
-  function wcfmvm_validate_and_create_membership() {
+	/**
+	 * Claim a transaction id before processing it - the atomic replay guard.
+	 *
+	 * See wcfmvm_claim_transaction(): a get_option() / update_option() pair let two
+	 * concurrent IPN retries both process the same payment.
+	 *
+	 * @param string $txn_id Gateway transaction id.
+	 * @return bool True when this request claimed the transaction.
+	 */
+	public function claim_transaction( $txn_id ) {
+		return wcfmvm_claim_transaction( 'paypal', $txn_id );
+	}
+
+	/**
+	 * Release a claim taken by claim_transaction().
+	 *
+	 * PayPal re-sends an IPN for the same transaction when it was not accepted the
+	 * first time - a payment that had not cleared yet, or a misconfigured receiver
+	 * email - so a transaction that was NOT processed has to become claimable again.
+	 *
+	 * @param string $txn_id Gateway transaction id.
+	 */
+	public function release_transaction( $txn_id ) {
+		wcfmvm_release_transaction( 'paypal', $txn_id );
+	}
+
+	function wcfmvm_validate_and_create_membership() {
+		$txn_id = isset( $this->ipn_data['txn_id'] ) ? $this->ipn_data['txn_id'] : '';
+
+		// Prevent Replay Attacks
+		if ( ! empty( $txn_id ) && ! $this->claim_transaction( $txn_id ) ) {
+			wcfmvm_create_log( 'Transaction ' . $txn_id . ' already processed. Aborting to prevent replay.' );
+			return false;
+		}
+
+		$processed = $this->process_membership_ipn();
+
+		// Nothing was done with this transaction, let PayPal retry it.
+		if ( ! $processed && ! empty( $txn_id ) ) {
+			$this->release_transaction( $txn_id );
+		}
+
+		return $processed;
+	}
+
+  function process_membership_ipn() {
   	global $WCFM, $WCFMvm, $wpdb;
-  	
+
 		// Check Product Name , Price , Currency , Receivers email ,
 		$error_msg = "";
 
 		// Read the IPN and validate
 		$gross_total = $this->ipn_data['mc_gross'];
 		$transaction_type = $this->ipn_data['txn_type'];
-		$txn_id = isset($this->ipn_data['txn_id']) ? $this->ipn_data['txn_id'] : '';        
+		$txn_id = isset($this->ipn_data['txn_id']) ? $this->ipn_data['txn_id'] : '';
 		$payment_status = isset($this->ipn_data['payment_status']) ? $this->ipn_data['payment_status'] : '';
-		
-		// Prevent Replay Attacks
-		if ( ! empty( $txn_id ) ) {
-			$txn_processed = get_option( 'wcfmvm_paypal_txn_' . $txn_id );
-			if ( $txn_processed ) {
-				wcfmvm_create_log('Transaction ' . $txn_id . ' already processed. Aborting to prevent replay.');
-				return false;
-			}
-		}
-			
+
 		// Check receiver email
 		$receiver_email = isset($this->ipn_data['receiver_email']) ? strtolower(trim($this->ipn_data['receiver_email'])) : '';
 		$business_email = isset($this->ipn_data['business']) ? strtolower(trim($this->ipn_data['business'])) : '';
@@ -110,21 +146,75 @@ class wcfmvm_paypal_ipn_handler {
 				$subscription_type = isset( $subscription['subscription_type'] ) ? $subscription['subscription_type'] : 'one_time';
 				
 				if ( $subscription_type != 'one_time' ) {
-					$subscription_amt = isset( $subscription['subscription_amt'] ) ? floatval($subscription['subscription_amt']) : '1';
+					// The subscription request PayPal turned into this profile was built and
+					// submitted CLIENT SIDE, so every profile parameter the member's browser
+					// posted has to be validated against the plan - not just the recurring
+					// amount, also the periods and the recur count, otherwise a member can
+					// subscribe at the right price but on a tampered interval, or slip in a
+					// trial leg the plan does not have.
+					//
+					// The expected values mirror wcfm_memberships_payment_paypal(), which
+					// builds the request: `a3` is the plan's billing amount with membership
+					// tax applied (`mc_amount3` here), `p3 t3` come back as `period3`, the
+					// optional trial leg as `mc_amount1` / `period1`, and `srt` as
+					// `recur_times`. (There is no `subscription_amt` key on a plan - reading
+					// one made every recurring signup fall back to 1 and fail the check.)
+					$decimals             = wc_get_price_decimals();
+					$billing_amt          = isset( $subscription['billing_amt'] ) ? floatval( $subscription['billing_amt'] ) : 0;
+					$billing_period       = isset( $subscription['billing_period'] ) ? $subscription['billing_period'] : '1';
+					$billing_period_type  = isset( $subscription['billing_period_type'] ) ? $subscription['billing_period_type'] : 'M';
+					$billing_period_count = isset( $subscription['billing_period_count'] ) ? absint( $subscription['billing_period_count'] ) : 1;
+					$trial_period         = isset( $subscription['trial_period'] ) ? $subscription['trial_period'] : '';
+					$trial_period_type    = isset( $subscription['trial_period_type'] ) ? $subscription['trial_period_type'] : 'M';
+					$trial_amt            = isset( $subscription['trial_amt'] ) ? $subscription['trial_amt'] : '0';
+					if ( !empty( $trial_period ) && empty( $trial_amt ) ) {
+						$trial_amt = 1;
+					}
+
 					$payment_currency = strtoupper(get_woocommerce_currency());
 					$payment_currency = apply_filters( 'wcfm_membership_payment_currency', $payment_currency );
-					
-					$mc_amount3 = isset( $this->ipn_data['mc_amount3'] ) ? floatval( $this->ipn_data['mc_amount3'] ) : 0;
+
+					$subscription_amt = wc_format_decimal( wcfmvm_membership_tax_price( $billing_amt ), $decimals );
+					$mc_amount3 = wc_format_decimal( isset( $this->ipn_data['mc_amount3'] ) ? floatval( $this->ipn_data['mc_amount3'] ) : 0, $decimals );
 					$mc_currency = isset( $this->ipn_data['mc_currency'] ) ? strtoupper( $this->ipn_data['mc_currency'] ) : '';
-					
-					if ( $subscription_amt != $mc_amount3 ) {
+
+					if ( $subscription_amt !== $mc_amount3 ) {
 						wcfmvm_create_log('Subscription fee AMOUNT mismatch. Expected: ' . $subscription_amt . ' Received: ' . $mc_amount3 . ' Aborting.');
 						return false;
 					}
-					
+
 					if ( $payment_currency != $mc_currency ) {
 						wcfmvm_create_log('Subscription fee CURRENCY mismatch. Expected: ' . $payment_currency . ' Received: ' . $mc_currency . ' Aborting.');
 						return false;
+					}
+
+					$expected_period3 = strtoupper( trim( $billing_period . ' ' . $billing_period_type ) );
+					$ipn_period3 = isset( $this->ipn_data['period3'] ) ? strtoupper( trim( $this->ipn_data['period3'] ) ) : '';
+					if ( $expected_period3 !== $ipn_period3 ) {
+						wcfmvm_create_log('Subscription BILLING PERIOD mismatch. Expected: ' . $expected_period3 . ' Received: ' . $ipn_period3 . ' Aborting.');
+						return false;
+					}
+
+					$ipn_period1 = isset( $this->ipn_data['period1'] ) ? strtoupper( trim( $this->ipn_data['period1'] ) ) : '';
+					if ( !empty( $trial_period ) ) {
+						$expected_a1 = wc_format_decimal( wcfmvm_membership_tax_price( floatval( $trial_amt ) ), $decimals );
+						$ipn_amount1 = wc_format_decimal( isset( $this->ipn_data['mc_amount1'] ) ? floatval( $this->ipn_data['mc_amount1'] ) : 0, $decimals );
+						$expected_period1 = strtoupper( trim( $trial_period . ' ' . $trial_period_type ) );
+						if ( ( $expected_period1 !== $ipn_period1 ) || ( $expected_a1 !== $ipn_amount1 ) ) {
+							wcfmvm_create_log('Subscription TRIAL mismatch. Expected: ' . $expected_a1 . ' / ' . $expected_period1 . ' Received: ' . $ipn_amount1 . ' / ' . $ipn_period1 . ' Aborting.');
+							return false;
+						}
+					} elseif ( $ipn_period1 !== '' ) {
+						wcfmvm_create_log('Subscription has a TRIAL leg (' . $ipn_period1 . ') but the plan has none. Aborting.');
+						return false;
+					}
+
+					if ( $billing_period_count > 1 ) {
+						$ipn_recur_times = isset( $this->ipn_data['recur_times'] ) ? absint( $this->ipn_data['recur_times'] ) : 0;
+						if ( $ipn_recur_times !== $billing_period_count ) {
+							wcfmvm_create_log('Subscription RECUR COUNT mismatch. Expected: ' . $billing_period_count . ' Received: ' . $ipn_recur_times . ' Aborting.');
+							return false;
+						}
 					}
 				}
 			}
@@ -147,14 +237,108 @@ class wcfmvm_paypal_ipn_handler {
 			
 			//wcfmvm_handle_subsc_signup_stand_alone( $member_id, $this->ipn_data );
 			return true;
-		} else if (($transaction_type == "subscr_cancel") || ($transaction_type == "subscr_eot") || ($transaction_type == "subscr_failed")) {
+		} else if (($transaction_type == "subscr_cancel") || ($transaction_type == "subscr_eot")) {
 			// Code to handle the IPN for subscription cancellation
 			$wcfm_membership_id = get_user_meta( $member_id, 'wcfm_membership', true );
 			wcfm_log('Subscription cancellation PayPal IPN received...');
 			wcfm_log( "Membership Expiry by PayPal :: " . $member_id . " <=> " . $wcfm_membership_id . " <=> " . $transaction_type );
-			$WCFMvm->wcfmvm_vendor_membership_cancel( $member_id, $wcfm_membership_id );
+			// Ledger first: the cancellation cleans the profile metas up, and this row
+			// must not re-create wcfm_subscription_profile_id after that.
 			$WCFMvm->store_subscription_data( $member_id, 'paypal_subs', $this->ipn_data['subscr_id'], $transaction_type, 'Cancelled', $this->post_string );
+			$WCFMvm->wcfmvm_vendor_membership_cancel( $member_id, $wcfm_membership_id );
 			return true;
+		} else if ($transaction_type == "subscr_failed") {
+			// A failed collection is NOT a cancellation: PayPal retries it (the request
+			// sets `sra`) and sends subscr_cancel / subscr_eot when it finally gives up.
+			// Tearing the membership down here demoted the vendor days before the retry
+			// succeeded - the renewal then arrived for a member who no longer had a
+			// membership to renew.
+			$subscr_id = isset( $this->ipn_data['subscr_id'] ) ? $this->ipn_data['subscr_id'] : '';
+			wcfm_log( 'Subscription payment failed PayPal IPN received... member ' . $member_id . ' (' . $subscr_id . '), awaiting PayPal retry or cancellation.' );
+			if ( $subscr_id ) {
+				$WCFMvm->store_subscription_data( $member_id, 'paypal_subs', $subscr_id, $transaction_type, 'Failed', $this->post_string );
+			}
+			return true;
+		} else if ($transaction_type == "subscr_payment") {
+			// A recurring collection: the profile's first charge right after signup, or
+			// a renewal of a later cycle.
+			$subscr_id = isset( $this->ipn_data['subscr_id'] ) ? $this->ipn_data['subscr_id'] : '';
+			$wcfm_membership = get_user_meta( $member_id, 'temp_wcfm_membership', true );
+
+			if ( $wcfm_membership ) {
+				// First collection while registration is still pending - the payment IPN
+				// overtook the signup IPN. Activate exactly like the signup path does.
+				update_user_meta( $member_id, 'wcfm_membership_paymode', 'paypal' );
+				if ( $subscr_id ) {
+					update_user_meta( $member_id, 'wcfm_paypal_subscription_id', $subscr_id );
+				}
+				$required_approval = get_post_meta( $wcfm_membership, 'required_approval', true ) ? get_post_meta( $wcfm_membership, 'required_approval', true ) : 'no';
+				if( $required_approval != 'yes' ) {
+					$WCFMvm->register_vendor( $member_id );
+				} else {
+					$wcfm_is_send_approval_reminder_admin = get_user_meta( $member_id, 'wcfm_is_send_approval_reminder_admin', true );
+					if( !$wcfm_is_send_approval_reminder_admin ) {
+						$WCFMvm->send_approval_reminder_admin( $member_id );
+						update_user_meta( $member_id, 'wcfm_is_send_approval_reminder_admin', 'yes' );
+					}
+				}
+				$WCFMvm->store_subscription_data( $member_id, 'paypal', $txn_id, $transaction_type, $payment_status, $this->post_string );
+			} else {
+				$membership_id = absint( get_user_meta( $member_id, 'wcfm_membership', true ) );
+				if ( !$membership_id ) {
+					wcfmvm_create_log( 'Recurring payment ' . $txn_id . ' received for member ' . $member_id . ' who holds no membership. Needs manual attention.' );
+					return false;
+				}
+
+				// The collection must come from the profile this member subscribed with.
+				$profile_id = get_user_meta( $member_id, 'wcfm_subscription_profile_id', true );
+				if ( !$profile_id ) {
+					$profile_id = get_user_meta( $member_id, 'wcfm_paypal_subscription_id', true );
+				}
+				if ( $profile_id && $subscr_id && ( $profile_id !== $subscr_id ) ) {
+					wcfmvm_create_log( 'Recurring payment ' . $txn_id . ' is for profile ' . $subscr_id . ' but member ' . $member_id . ' subscribed with profile ' . $profile_id . '. Aborting.' );
+					return false;
+				}
+
+				// The profile's first collection arrives right after the signup IPN has
+				// already registered the member and scheduled the period it pays for -
+				// only the ledger row is due for it. Later collections are renewals.
+				$prior_payments = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}wcfm_membership_subscription WHERE vendor_id = %d AND membership_id = %d AND transaction_type IN ( 'subscr_payment', 'subscription_renewal' )", $member_id, $membership_id ) );
+
+				if ( !$prior_payments ) {
+					$WCFMvm->store_subscription_data( $member_id, 'paypal', $txn_id, $transaction_type, $payment_status, $this->post_string );
+				} else {
+					// A renewal collects the plan's recurring amount - the trial, if any,
+					// was the first collection.
+					$subscription = (array) get_post_meta( $membership_id, 'subscription', true );
+					$decimals     = wc_get_price_decimals();
+					$billing_amt  = isset( $subscription['billing_amt'] ) ? floatval( $subscription['billing_amt'] ) : 0;
+					$expected_amt = wc_format_decimal( wcfmvm_membership_tax_price( $billing_amt ), $decimals );
+					$received_amt = wc_format_decimal( floatval( $this->ipn_data['mc_gross'] ), $decimals );
+					$payment_currency = strtoupper(get_woocommerce_currency());
+					$payment_currency = apply_filters( 'wcfm_membership_payment_currency', $payment_currency );
+					$mc_currency = isset( $this->ipn_data['mc_currency'] ) ? strtoupper( $this->ipn_data['mc_currency'] ) : '';
+
+					if ( $expected_amt !== $received_amt ) {
+						wcfmvm_create_log( 'Renewal AMOUNT mismatch for member ' . $member_id . '. Expected: ' . $expected_amt . ' Received: ' . $received_amt . ' Aborting.' );
+						return false;
+					}
+					if ( $payment_currency != $mc_currency ) {
+						wcfmvm_create_log( 'Renewal CURRENCY mismatch for member ' . $member_id . '. Expected: ' . $payment_currency . ' Received: ' . $mc_currency . ' Aborting.' );
+						return false;
+					}
+
+					$renewed = $WCFMvm->wcfmvm_membership_renewal( $member_id, array(
+						'paymode'             => 'paypal',
+						'transaction_id'      => $txn_id,
+						'transaction_details' => $this->post_string,
+						'membership_id'       => $membership_id,
+					) );
+					if ( !$renewed ) {
+						return false;
+					}
+				}
+			}
 		} else {
 			$cart_items = array();
 			wcfmvm_create_log('Transaction Type: Buy Now/Subscribe');
@@ -182,11 +366,14 @@ class wcfmvm_paypal_ipn_handler {
 				$subscription_type		= isset( $subscription['subscription_type'] ) ? $subscription['subscription_type'] : 'one_time';
 
 				if ( $subscription_type == 'one_time' ) {
-					$one_time_amt		= isset( $subscription['one_time_amt'] ) ? floatval($subscription['one_time_amt']) : '1';
+					// The payment form posts the amount with membership tax applied, so the
+					// expected total has to include it too.
+					$one_time_amt		= isset( $subscription['one_time_amt'] ) ? floatval($subscription['one_time_amt']) : 1;
+					$one_time_amt		= wc_format_decimal( wcfmvm_membership_tax_price( $one_time_amt ), wc_get_price_decimals() );
 					$payment_currency 	= strtoupper(get_woocommerce_currency());
 					$payment_currency 	= apply_filters( 'wcfm_membership_payment_currency', $payment_currency );
 
-					if ( $one_time_amt != $mc_gross ) {
+					if ( $one_time_amt !== wc_format_decimal( floatval( $mc_gross ), wc_get_price_decimals() ) ) {
 						wcfmvm_create_log('Membership fee AMOUNT mismatch. Check you paypal transaction to verify. Aborting the process.');
 						return false;
 					}
@@ -225,11 +412,9 @@ class wcfmvm_paypal_ipn_handler {
 		do_action('wcfmvm_paypal_ipn_processed', $this->ipn_data);
 		
 		do_action('wcfmvm_payment_ipn_processed', $this->ipn_data);
-		
-		if ( ! empty( $txn_id ) ) {
-			update_option( 'wcfmvm_paypal_txn_' . $txn_id, true );
-		}
-						
+
+		// The transaction was claimed before processing started, see
+		// wcfmvm_validate_and_create_membership().
 		return true;
 	}
 

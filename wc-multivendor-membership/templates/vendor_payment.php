@@ -40,9 +40,8 @@ $membership_payment_settings = array();
 if( isset( $wcfm_membership_options['membership_payment_settings'] ) ) $membership_payment_settings = $wcfm_membership_options['membership_payment_settings'];
 $payment_methods = array( 'paypal' );
 if( isset( $membership_payment_settings['payment_methods'] ) ) $payment_methods = $membership_payment_settings['payment_methods'];
-$paypal_email = ( $membership_payment_settings['paypal_email'] ) ? $membership_payment_settings['paypal_email'] : '';
-$paypal_sandbox = isset( $membership_payment_settings['paypal_sandbox'] ) ? 'yes' : 'no';
-$bank_details = isset( $membership_payment_settings['bank_details'] ) ? $membership_payment_settings['bank_details'] : '';
+// Gateway specific settings (PayPal credentials, bank details, ...) are read by the
+// payment form handler of each method, see `wcfmvm_membership_payment_form_{$payment_method}`.
 $payment_terms = isset( $membership_payment_settings['payment_terms'] ) ? $membership_payment_settings['payment_terms'] : '';
 
 $wcfm_membership_payment_methods = get_wcfm_membership_payment_methods();
@@ -169,47 +168,26 @@ if ( $is_wc_checkout ) {
 						}
 						echo "</div>";
 					
-						if( $payment_method == 'paypal' ) {
-							$WCFMvm->frontend->generate_paypal_request_form( $membership_id, $member_id );
-							?>
-							<div class="wcfm-clearfix"></div>
-							<div class="wcfm-message" tabindex="-1"></div>
-							
-							<div id="wcfm_membership_payment_submit" class="wcfm_form_simple_submit_wrapper">
-								<input type="submit" name="save-data" value="<?php esc_html_e( 'Proceed', 'wc-multivendor-membership' ); ?>" id="wcfm_membership_payment_button_paypal" class="wcfm_membership_payment_button wcfm_submit_button" />
-							</div>
-							<div class="wcfm-clearfix"></div>
-						</form>
-						<?php
-						} elseif( $payment_method == 'stripe' ) {
-							$stripe_form = $WCFMvm->frontend->generate_stripe_request_form( $membership_id, $member_id );
-							if( $stripe_form ) {
-								?>
-								<div class="wcfm-clearfix"></div>
-								<div class="wcfm-message" tabindex="-1"></div>
-								
-								<div id="wcfm_membership_payment_submit" class="wcfm_form_simple_submit_wrapper">
-									<input type="submit" name="save-data" value="<?php esc_html_e( 'Proceed', 'wc-multivendor-membership' ); ?>" id="wcfm_membership_payment_button_stripe" class="wcfm_submit_button" />
-								</div>
-								<div class="wcfm-clearfix"></div>
-							</form>
-							<?php
-							}
+						/**
+						 * Render the payment form for this payment method.
+						 *
+						 * Every method renders through its own action, so a gateway added with the
+						 * `wcfm_membership_payment_methods` filter can render a fully custom payment
+						 * form for its own slug without overriding this template. Core registers the
+						 * PayPal, Stripe and Bank Transfer handlers in WCFMvm_Frontend.
+						 *
+						 * @param int   $membership_id Membership plan (post) ID.
+						 * @param int   $member_id     Member (user) ID.
+						 * @param array $subscription  The plan `subscription` meta.
+						 */
+						if( has_action( 'wcfmvm_membership_payment_form_' . $payment_method ) ) {
+							do_action( 'wcfmvm_membership_payment_form_' . $payment_method, $membership_id, $member_id, $subscription );
 						} else {
+							wcfmvm_create_log( 'No payment form handler registered for membership payment method: ' . $payment_method );
 							?>
-							<form id="wcfm_membership_payment_form_bank_transfer" class="wcfm wcfm_membership_payment_form wcfm_membership_payment_form_non_free">
-								<input type="hidden" name="member_id" value="<?php echo esc_attr($member_id); ?>" />
-								<div class="wcfm_payment_option_details wcfm_payment_option_bank_transfer_deails">
-									<?php echo wp_kses_post(str_replace( "\n", "<br />", $bank_details )); ?>
-								</div>
-								<div class="wcfm-clearfix"></div>
-								<div class="wcfm-message" tabindex="-1"></div>
-								
-								<div id="wcfm_membership_payment_submit" class="wcfm_form_simple_submit_wrapper">
-									<input type="submit" name="save-data" value="<?php esc_html_e( 'Proceed', 'wc-multivendor-membership' ); ?>" id="wcfm_membership_payment_button_bank_transfer" class="wcfm_membership_payment_button wcfm_submit_button" />
-								</div>
-								<div class="wcfm-clearfix"></div>
-							</form>
+							<div class="wcfm-message wcfm-warning" tabindex="-1" style="display:block;"><span class="wcicon-status-pending"></span>
+								<?php esc_html_e( 'This payment option is not available right now. Please choose another one or contact the store admin.', 'wc-multivendor-membership' ); ?>
+							</div>
 							<?php
 						}
 					}

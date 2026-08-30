@@ -40,18 +40,37 @@ class WCFMvm_Memberships_Payment_Controller {
 			$wcfm_membership	= get_user_meta($member_id, 'temp_wcfm_membership', true);
 			$paymode 			= wc_clean($_POST['paymode']);
 
-			$wcfm_membership_payment_methods = array_keys(get_wcfm_membership_payment_methods());
-
 			if ($wcfm_membership) {
 				$subscription 	= (array) get_post_meta($wcfm_membership, 'subscription', true);
+				$is_free 		= isset($subscription['is_free']);
 
 				/**
-				 * 	For Free membership, (paymode == free) is allowed
-				 * 	For Paid membership, paymode should be in the list of get_wcfm_membership_payment_methods()
+				 * This controller finalises the subscription and registers the vendor WITHOUT
+				 * contacting any payment gateway, so it must only ever complete:
+				 *
+				 *   - Free memberships (nothing is due), or
+				 *   - Paid memberships paid with an *offline* method the admin has enabled
+				 *     (e.g. Bank Transfer) that is reconciled outside the site.
+				 *
+				 * Online gateways (PayPal, Stripe) must NOT be completed here -- they are
+				 * finalised only after the gateway returns a verified IPN (see
+				 * ipn/wcfmvm-handle-pp-ipn.php and ipn/wcfmvm-handle-stripe-sca-*-ipn.php).
+				 * Completing them here would let a member activate a paid vendor membership
+				 * without ever paying (CVE-2026-12967). The paymode is also validated against
+				 * the admin allow-list so a disabled method cannot be forced via a direct
+				 * request (Broken Access Control).
 				 */
-				if (!in_array($paymode, $wcfm_membership_payment_methods) && !isset( $subscription['is_free'] )) {
-					echo '{"status": false, "message": "' . esc_html($wcfm_membership_payment_messages['invalid_payment_method']) . '"}';
-					die;
+				if ($is_free) {
+					// Free plan: payment mode is irrelevant, normalise it.
+					$paymode = 'free';
+				} else {
+					$enabled_payment_methods = get_wcfm_membership_enabled_payment_methods();
+					$offline_payment_methods = get_wcfm_membership_offline_payment_methods();
+
+					if (!in_array($paymode, $enabled_payment_methods, true) || !in_array($paymode, $offline_payment_methods, true)) {
+						echo '{"status": false, "message": "' . esc_html($wcfm_membership_payment_messages['invalid_payment_method']) . '"}';
+						die;
+					}
 				}
 
 				update_user_meta($member_id, 'wcfm_membership_paymode', $paymode);

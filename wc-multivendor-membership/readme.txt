@@ -2,12 +2,12 @@
 Contributors: wclovers
 Tags: woocommerce membership, subscription, members, multivendor marketplace, multi vendor 
 Donate link: https://www.paypal.me/wclovers/25usd
-Requires at least: 4.4
-Tested up to: 6.9
-WC requires at least: 3.0
-WC tested up to: 10.7
+Requires at least: 5.5
+Tested up to: 7.0.4
+WC requires at least: 7.0
+WC tested up to: 11.0
 Requires PHP: 5.6
-Stable tag: 2.11.11
+Stable tag: 2.12.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -114,10 +114,10 @@ Be with us ... Team [WC Lovers](https://wclovers.com)
 
 = Minimum Requirements =
 
-* WordPress 4.7 or greater
-* WooCommerce 3.0 or greater
+* WordPress 5.5 or greater
+* WooCommerce 7.0 or greater
 * PHP version 5.6 or greater
-* MySQL version 5.0 or greater
+* MySQL version 5.6 or greater
 
 = Automatic installation =
 
@@ -156,6 +156,23 @@ Please report security bugs found in the source code of the WCFM Membership plug
 17. Membership Details - Cancel & Upgrade
 
 == Changelog ==
+
+= 2.12.0 =
+*Updated - 30/08/2026*
+
+* Fixed   - Payment bypass allowing a paid vendor membership to be activated without a verified gateway payment (CVE-2026-12967). Reported independently by yagamimoon (Patchstack) and Muni Nitish Kumar Yaddala, credit goes to both researchers for identifying this issue.
+* Fixed   - Broken Access Control allowing an administrator-disabled payment method to complete a membership subscription. Reported by mySebbe (Patchstack), credit goes to mySebbe for identifying this issue.
+* Fixed   - Limited Privilege Escalation via User Role Overwrite through legacy Stripe IPN handlers (endpoints retired). Reported by mySebbe (Patchstack), credit goes to mySebbe for identifying this issue.
+* Fixed   - PHP warning "Undefined variable $next_payment_time" while setting the membership schedule for a recurring plan saved without a trial or billing period.
+* Fixed   - Membership cancellation confirmation message could not be translated, the source text did not match the translation catalog.
+* Fixed   - PayPal recurring payments were rejected by the IPN price check, which compared against a plan field that does not exist, so recurring PayPal memberships could never complete.
+* Fixed   - Subscription amounts were truncated to whole numbers in the membership ledger, dropping the fractional part.
+* Fixed   - Memberships paid through WooCommerce checkout were recorded with no amount in the membership ledger.
+* Fixed   - PayPal IPN replay guard could process the same transaction twice when notifications arrived concurrently.
+* Fixed   - Renewal could add duplicate entries to a membership's subscriber list.
+* Enhance - Membership renewal engine, letting payment gateway add-ons collect recurring membership payments and manage their own renewal dates.
+* Enhance - Membership payment forms dispatch through per gateway action handlers, with membership pay modes recognised through a filterable map.
+* Enhance - Signed Stripe webhook endpoint for membership payment notifications.
 
 = 2.11.11 =
 *Updated - 02/05/2026*
@@ -877,7 +894,18 @@ Please report security bugs found in the source code of the WCFM Membership plug
 == Upgrade Notice ==
 
 
-= 2.11.11 =
+= 2.12.0 =
 
-* Fixed   - Broken Access Control vulnerability in PayPal IPN payment processing.
-* Fixed   - Insecure Direct Object Reference (IDOR) to Limited Privilege Escalation via User Role Overwrite in membership AJAX actions.
+* Fixed   - Payment bypass allowing a paid vendor membership to be activated without a verified gateway payment (CVE-2026-12967). Reported independently by yagamimoon (Patchstack) and Muni Nitish Kumar Yaddala, credit goes to both researchers for identifying this issue.
+* Fixed   - Broken Access Control allowing an administrator-disabled payment method to complete a membership subscription. Reported by mySebbe (Patchstack), credit goes to mySebbe for identifying this issue.
+* Fixed   - Limited Privilege Escalation via User Role Overwrite through legacy Stripe IPN handlers (endpoints retired). Reported by mySebbe (Patchstack), credit goes to mySebbe for identifying this issue.
+* Fixed   - PHP warning "Undefined variable $next_payment_time" while setting the membership schedule for a recurring plan saved without a trial or billing period.
+* Fixed   - Membership cancellation confirmation message could not be translated, the source text did not match the translation catalog.
+* Fixed   - PayPal recurring payments were rejected by the IPN price check, which compared against a plan field that does not exist, so recurring PayPal memberships could never complete.
+* Fixed   - Subscription amounts were truncated to whole numbers in the membership ledger, dropping the fractional part.
+* Fixed   - Memberships paid through WooCommerce checkout were recorded with no amount in the membership ledger.
+* Fixed   - PayPal IPN replay guard could process the same transaction twice when notifications arrived concurrently.
+* Fixed   - Renewal could add duplicate entries to a membership's subscriber list.
+* Enhance - Membership renewal engine, letting payment gateway add-ons collect recurring membership payments and manage their own renewal dates.
+* Enhance - Membership payment forms dispatch through per gateway action handlers, with membership pay modes recognised through a filterable map.
+* Enhance - Signed Stripe webhook endpoint for membership payment notifications.

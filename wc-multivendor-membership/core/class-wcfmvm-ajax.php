@@ -1000,19 +1000,23 @@ class WCFMvm_Ajax {
 					'custom'		=> esc_attr($member_id),
 				];
 
+				// PayPal accepts at most two decimals (none for zero decimal currencies)
+				// and the IPN handler compares what PayPal reports back against these
+				// same wc_format_decimal() rounded values - an unrounded tax result like
+				// 23.988 would be rejected at PayPal or fail the IPN amount check.
 				if ($subscription_type == 'one_time') {
 					$body['cmd'] = '_xclick';
-					$body['amount'] = wcfmvm_membership_tax_price($one_time_amt);
+					$body['amount'] = wc_format_decimal( wcfmvm_membership_tax_price($one_time_amt), wc_get_price_decimals() );
 				} else {
 					$body['cmd'] = '_xclick-subscriptions';
 					if (!empty($trial_period)) {
-						$body['a1'] = wcfmvm_membership_tax_price($trial_amt);
+						$body['a1'] = wc_format_decimal( wcfmvm_membership_tax_price($trial_amt), wc_get_price_decimals() );
 						$body['p1'] = esc_attr($trial_period);
 						$body['t1'] = esc_attr($trial_period_type);
 					}
-					
+
 					if (!empty($billing_period) && !empty($billing_amt)) {
-						$body['a3'] = wcfmvm_membership_tax_price($billing_amt);
+						$body['a3'] = wc_format_decimal( wcfmvm_membership_tax_price($billing_amt), wc_get_price_decimals() );
 						$body['p3'] = esc_attr($billing_period);
 						$body['t3'] = esc_attr($billing_period_type);
 					}

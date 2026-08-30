@@ -4,14 +4,14 @@
  * Plugin URI: https://wclovers.com/product/woocommerce-multivendor-membership
  * Description: A simple membership plugin for your multi-vendor marketplace.
  * Author: WC Lovers
- * Version: 2.11.11
+ * Version: 2.12.0
  * Author URI: https://wclovers.com
  *
  * Text Domain: wc-multivendor-membership
  * Domain Path: /lang/
  *
- * WC requires at least: 3.0.0
- * WC tested up to: 10.7
+ * WC requires at least: 7.0.0
+ * WC tested up to: 11.0
  *
  */
 

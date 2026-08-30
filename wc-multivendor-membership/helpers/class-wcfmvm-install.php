@@ -35,7 +35,9 @@ class WCFMvm_Install {
 		
 		if ( !get_option( 'wcfmvm_table_install' ) ) {
 			$this->wcfmvm_create_tables();
-			update_option("wcfmvm_table_install", 1);
+			update_option( "wcfmvm_table_install", 1 );
+			// Tables are created at the current schema, nothing to update
+			update_option( 'wcfmvm_db_version', $WCFMvm->version );
 		}
 		
 		// Intialize WCFM End points
@@ -122,7 +124,7 @@ class WCFMvm_Install {
 															`vendor_id` bigint(20) NOT NULL default 0,
 															`membership_id` bigint(20) NOT NULL default 0,
 															`subscription_type` VARCHAR(50) NOT NULL,
-															`subscription_amt` int(10) NOT NULL default 0,
+															`subscription_amt` decimal(19,4) NOT NULL default 0,
 															`subscription_interval` VARCHAR(50) NOT NULL,
 															`event` VARCHAR(50) NOT NULL,
 															`pay_mode` VARCHAR(50) NOT NULL,
@@ -137,6 +139,29 @@ class WCFMvm_Install {
 															
 		foreach ($create_tables_query as $create_table_query) {
 			$wpdb->query($create_table_query);
+		}
+	}
+
+	/**
+	 * Schema updates for WCFMvm tables that already exist
+	 * @global object $wpdb
+	 *
+	 * The tables are created once, guarded by the `wcfmvm_table_install` option, so
+	 * column changes have to be applied separately on installs that predate them.
+	 * Runs whenever `wcfmvm_db_version` trails the plugin version, so every statement
+	 * here must be safe to run more than once.
+	 */
+	static function wcfmvm_update_tables() {
+		global $wpdb;
+
+		$update_tables_query = array();
+
+		// `subscription_amt` used to be an int(10), which truncated the paise / cents
+		// of every subscription amount stored.
+		$update_tables_query[] = "ALTER TABLE `" . $wpdb->prefix . "wcfm_membership_subscription` MODIFY `subscription_amt` decimal(19,4) NOT NULL default 0";
+
+		foreach ( $update_tables_query as $update_table_query ) {
+			$wpdb->query( $update_table_query );
 		}
 	}
 }

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: WCFM - WooCommerce Multivendor Membership\n"
+"Project-Id-Version: WCFM - WooCommerce Multivendor Membership 2.12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: Admin JMNN <jumunona@gmail.com>\n"
 "Language-Team: Русский\n"
@@ -227,9 +227,7 @@ msgstr "Членство"
 #: helpers/wcfmvm-core-functions.php:211
 #: includes/shortcodes/class-wcfmvm-shortcode-vendor-registration.php:32
 msgid "Registration"
-msgstr ""
-"Регистрация\n"
-""
+msgstr "Регистрация"
 
 #: core/class-wcfmvm.php:1370
 #: core/class-wcfmvm-frontend.php:260
@@ -1922,4 +1920,32 @@ msgstr ""
 #: core/class-wcfmvm.php:1918
 #, php-format
 msgid "Your membership plan <b>%s</b> has been expired."
+msgstr ""
+
+#: core/class-wcfmvm.php:1701
+#, php-format
+msgid "<b>%s</b> membership plan (<strong>%s</strong>) subscription successfully renewed."
+msgstr ""
+
+#: core/class-wcfmvm.php:1707
+#, php-format
+msgid "Your membership plan (<strong>%s</strong>) subscription successfully renewed."
+msgstr ""
+
+#: templates/vendor_payment.php:189
+msgid "This payment option is not available right now. Please choose another one or contact the store admin."
+msgstr ""
+
+#. translators: %s: the site's Stripe webhook endpoint URL
+#: views/wcfmvm-view-memberships-settings.php:53
+#, php-format
+msgid "Add a webhook endpoint for %s in your Stripe dashboard, subscribe it to checkout.session.completed, invoice.payment_succeeded, invoice.payment_failed and customer.subscription.deleted, then paste its signing secret (whsec_...) here. Required for automatic subscription renewals."
+msgstr ""
+
+#: views/wcfmvm-view-memberships-settings.php:520
+msgid "Stripe Live Webhook Signing Secret"
+msgstr ""
+
+#: views/wcfmvm-view-memberships-settings.php:521
+msgid "Stripe Test Webhook Signing Secret"
 msgstr ""

@@ -155,6 +155,136 @@ if(!function_exists('get_wcfm_membership_payment_methods')) {
 	}
 }
 
+if(!function_exists('get_wcfm_membership_recurring_paymodes')) {
+	/**
+	 * Pay modes that identify a *recurring profile* subscription record.
+	 *
+	 * store_subscription_data() is called twice for a recurring plan: once with the
+	 * plain pay mode (e.g. 'stripe') for the initial / trial payment, and once with the
+	 * recurring variant (e.g. 'stripe_subs') carrying the gateway's own subscription or
+	 * billing profile id. The recurring record is the one that stores the billing amount,
+	 * the billing interval and `wcfm_subscription_profile_id`.
+	 *
+	 * Every supported payment method gets a `{method}_subs` recurring variant, so a
+	 * gateway added with the `wcfm_membership_payment_methods` filter is recognised as
+	 * recurring capable without any further registration. Use the filter below to declare
+	 * a recurring pay mode that does not follow that naming, or to drop the recurring
+	 * variant of a gateway that only ever takes one time payments.
+	 *
+	 * @return array Recurring pay mode key => the payment method it belongs to.
+	 */
+	function get_wcfm_membership_recurring_paymodes() {
+		$recurring_paymodes = array();
+
+		foreach( array_keys( get_wcfm_membership_payment_methods() ) as $payment_method ) {
+			$recurring_paymodes[ $payment_method . '_subs' ] = $payment_method;
+		}
+
+		return apply_filters( 'wcfm_membership_recurring_paymodes', $recurring_paymodes );
+	}
+}
+
+if(!function_exists('wcfmvm_transaction_claim_key')) {
+	/**
+	 * Option name holding the claim for a processed gateway transaction
+	 *
+	 * @param string $gateway Gateway slug, e.g. 'paypal', 'stripe'.
+	 * @param string $txn_id  Gateway transaction / event id.
+	 * @return string
+	 */
+	function wcfmvm_transaction_claim_key( $gateway, $txn_id ) {
+		return 'wcfmvm_' . sanitize_key( $gateway ) . '_txn_' . $txn_id;
+	}
+}
+
+if(!function_exists('wcfmvm_claim_transaction')) {
+	/**
+	 * Claim a gateway transaction id before processing it.
+	 *
+	 * INSERT IGNORE against the unique `option_name` index is the claim and the
+	 * replay check in one atomic statement - exactly one of any number of
+	 * concurrent notifications for the same transaction gets a row inserted.
+	 * add_option() is deliberately NOT used here: it checks with get_option()
+	 * first and then runs INSERT ... ON DUPLICATE KEY UPDATE, so two concurrent
+	 * requests can both walk through it.
+	 *
+	 * Claims are stored without autoload and pruned once past the retention
+	 * window, see WCFMvm::wcfmvm_prune_processed_transactions().
+	 *
+	 * @param string $gateway Gateway slug, e.g. 'paypal', 'stripe'.
+	 * @param string $txn_id  Gateway transaction / event id.
+	 * @return bool True when this request claimed the transaction.
+	 */
+	function wcfmvm_claim_transaction( $gateway, $txn_id ) {
+		global $wpdb;
+
+		if ( ! $txn_id ) return false;
+
+		$claimed = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (`option_name`, `option_value`, `autoload`) VALUES (%s, %s, 'no')", wcfmvm_transaction_claim_key( $gateway, $txn_id ), time() ) );
+
+		// A failed query is treated as not claimed - the gateway retries the notification.
+		return ( 1 === (int) $claimed );
+	}
+}
+
+if(!function_exists('wcfmvm_release_transaction')) {
+	/**
+	 * Release a claim taken by wcfmvm_claim_transaction().
+	 *
+	 * Gateways re-send a notification that was not accepted the first time (a
+	 * payment that had not cleared yet, a misconfigured receiver account), so a
+	 * transaction that was NOT processed has to become claimable again.
+	 *
+	 * @param string $gateway Gateway slug.
+	 * @param string $txn_id  Gateway transaction / event id.
+	 */
+	function wcfmvm_release_transaction( $gateway, $txn_id ) {
+		delete_option( wcfmvm_transaction_claim_key( $gateway, $txn_id ) );
+	}
+}
+
+if(!function_exists('get_wcfm_membership_enabled_payment_methods')) {
+	/**
+	 * Store admin enabled membership payment methods (allow-list).
+	 *
+	 * Unlike get_wcfm_membership_payment_methods() -- which lists every method the
+	 * plugin globally supports -- this returns only the methods the store admin has
+	 * actually enabled under WCFM Membership > Settings. Any server side flow that
+	 * accepts a client supplied paymode (e.g. the membership payment controller) MUST
+	 * validate against this list, never the global one, otherwise a disabled method
+	 * can be forced by posting directly to the endpoint.
+	 *
+	 * @return array List of enabled payment method keys, e.g. array( 'paypal', 'bank_transfer' ).
+	 */
+	function get_wcfm_membership_enabled_payment_methods() {
+		$wcfm_membership_options     = get_option( 'wcfm_membership_options', array() );
+		$membership_payment_settings = isset( $wcfm_membership_options['membership_payment_settings'] ) ? $wcfm_membership_options['membership_payment_settings'] : array();
+		$enabled_methods             = isset( $membership_payment_settings['payment_methods'] ) ? (array) $membership_payment_settings['payment_methods'] : array( 'paypal' );
+
+		// Keep only methods that are still globally supported.
+		$supported_methods = array_keys( get_wcfm_membership_payment_methods() );
+		$enabled_methods   = array_values( array_intersect( $enabled_methods, $supported_methods ) );
+
+		return apply_filters( 'wcfm_membership_enabled_payment_methods', $enabled_methods );
+	}
+}
+
+if(!function_exists('get_wcfm_membership_offline_payment_methods')) {
+	/**
+	 * Payment methods a membership subscription may be completed with WITHOUT an
+	 * online gateway confirmation.
+	 *
+	 * Only these methods may finalise a subscription directly through the membership
+	 * payment controller. Online gateways (PayPal, Stripe) must complete only after
+	 * their gateway returns a verified IPN, so they are deliberately excluded here.
+	 *
+	 * @return array List of offline payment method keys.
+	 */
+	function get_wcfm_membership_offline_payment_methods() {
+		return apply_filters( 'wcfm_membership_offline_payment_methods', array( 'bank_transfer' ) );
+	}
+}
+
 if(!function_exists('get_wcfm_memberships')) {
 	function get_wcfm_memberships() {
 		$args = array(

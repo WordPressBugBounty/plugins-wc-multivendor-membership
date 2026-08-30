@@ -120,21 +120,21 @@ class WCFMvm_Library {
 				if (wcfm_is_vendor() && apply_filters('wcfm_is_allow_membership_manage_under_setting', false)) {
 					wp_enqueue_script('wcfmvm_membership_cancel_js', $this->js_lib_url . 'wcfmvm-script-membership-cancel.js', array('jquery'), $WCFMvm->version, true);
 
-					wp_localize_script('wcfmvm_membership_cancel_js', 'wcfm_memberships_cancel_messages', array("cancel_confirmation" => __("Do you want to cancel this membership?\r\nYou can't undo this action ...", "wc-multivendor-membership")));
+					wp_localize_script('wcfmvm_membership_cancel_js', 'wcfm_memberships_cancel_messages', array("cancel_confirmation" => __("Do you want to cancel this membership?\nYou can't undo this action ...", "wc-multivendor-membership")));
 				}
 				break;
 
 			case 'wcfm-profile':
 				wp_enqueue_script('wcfmvm_profile_js', $this->js_lib_url . 'wcfmvm-script-membership-cancel.js', array('jquery', 'wcfm_profile_js'), $WCFMvm->version, true);
 
-				wp_localize_script('wcfmvm_profile_js', 'wcfm_memberships_cancel_messages', array("cancel_confirmation" => __("Do you want to cancel this membership?\r\nYou can't undo this action ...", "wc-multivendor-membership")));
+				wp_localize_script('wcfmvm_profile_js', 'wcfm_memberships_cancel_messages', array("cancel_confirmation" => __("Do you want to cancel this membership?\nYou can't undo this action ...", "wc-multivendor-membership")));
 				break;
 
 			case 'wcfm-vendors-manage':
 				$WCFM->library->load_datepicker_lib();
 				wp_enqueue_script('wcfmvm_vendor_membership_details_js', $this->js_lib_url . 'wcfmvm-script-membership-cancel.js', array('jquery'), $WCFMvm->version, true);
 
-				wp_localize_script('wcfmvm_vendor_membership_details_js', 'wcfm_memberships_cancel_messages', array("cancel_confirmation" => __("Do you want to cancel this membership?\r\nYou can't undo this action ...", "wc-multivendor-membership")));
+				wp_localize_script('wcfmvm_vendor_membership_details_js', 'wcfm_memberships_cancel_messages', array("cancel_confirmation" => __("Do you want to cancel this membership?\nYou can't undo this action ...", "wc-multivendor-membership")));
 				break;
 		}
 	}

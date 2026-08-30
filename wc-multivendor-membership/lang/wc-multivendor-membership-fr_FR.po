@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
+"Project-Id-Version: WCFM - WooCommerce Multivendor Membership 2.12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "Last-Translator: Premier <kameleon1er@gmail.com>\n"
 "Language-Team: Français\n"
@@ -621,7 +621,7 @@ msgstr "Prolonger l'abonnement"
 #: templates/vendor_membership_block.php:18
 #, php-format
 msgid "Restricted: You are not allowed to access this page. May be you already have a %sMembership Plan%s or your %sUser Role%s does not allow for this action. %sPlease contact %sStore Admin%s for more details."
-msgstr "Restreint: Vous n'êtes pas autorisé à accéder à cette page. Si vous souhaitez changer de plan merci de nous contacter"
+msgstr "Restreint : Vous n'êtes pas autorisé à accéder à cette page. Vous avez peut-être déjà un %splan d'abonnement%s ou votre %srôle utilisateur%s ne permet pas cette action. %sSi vous souhaitez changer de plan, merci de %snous contacter%s."
 
 #: templates/vendor_no_free_membership.php:18
 #, php-format
@@ -1919,4 +1919,32 @@ msgstr ""
 #: core/class-wcfmvm.php:1918
 #, php-format
 msgid "Your membership plan <b>%s</b> has been expired."
+msgstr ""
+
+#: core/class-wcfmvm.php:1701
+#, php-format
+msgid "<b>%s</b> membership plan (<strong>%s</strong>) subscription successfully renewed."
+msgstr ""
+
+#: core/class-wcfmvm.php:1707
+#, php-format
+msgid "Your membership plan (<strong>%s</strong>) subscription successfully renewed."
+msgstr ""
+
+#: templates/vendor_payment.php:189
+msgid "This payment option is not available right now. Please choose another one or contact the store admin."
+msgstr ""
+
+#. translators: %s: the site's Stripe webhook endpoint URL
+#: views/wcfmvm-view-memberships-settings.php:53
+#, php-format
+msgid "Add a webhook endpoint for %s in your Stripe dashboard, subscribe it to checkout.session.completed, invoice.payment_succeeded, invoice.payment_failed and customer.subscription.deleted, then paste its signing secret (whsec_...) here. Required for automatic subscription renewals."
+msgstr ""
+
+#: views/wcfmvm-view-memberships-settings.php:520
+msgid "Stripe Live Webhook Signing Secret"
+msgstr ""
+
+#: views/wcfmvm-view-memberships-settings.php:521
+msgid "Stripe Test Webhook Signing Secret"
 msgstr ""
